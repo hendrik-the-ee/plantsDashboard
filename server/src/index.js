@@ -3,6 +3,9 @@ import express from 'express';
 import morgan from 'morgan';
 import { HOST, PORT, UPLOADS_DIR } from './env.js';
 import { migrate, query, close } from './db.js';
+import { errorHandler } from './lib/errors.js';
+import plantsRouter from './routes/plants.js';
+import settingsRouter from './routes/settings.js';
 
 const app = express();
 
@@ -21,15 +24,14 @@ app.get('/api/health', async (_req, res) => {
   }
 });
 
+app.use('/api/plants', plantsRouter);
+app.use('/api/settings', settingsRouter);
+
 app.use('/api', (_req, res) => {
   res.status(404).json({ error: 'Not found' });
 });
 
-app.use((err, _req, res, _next) => {
-  const status = err.status || err.statusCode || 500;
-  if (status >= 500) console.error(err);
-  res.status(status).json({ error: status >= 500 ? 'Internal error' : err.message });
-});
+app.use(errorHandler);
 
 // The API still listens when Postgres is down so /api/health can say so, and it keeps
 // retrying so starting the database does not require restarting the server.
