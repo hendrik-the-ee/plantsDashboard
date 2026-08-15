@@ -1,0 +1,11 @@
+node_modules/
+client/dist/
+.env
+*.log
+.DS_Store
+
+# keep the uploads directory in git, but none of the uploaded files
+data/*
+!data/uploads/
+data/uploads/*
+!data/uploads/.gitkeep
