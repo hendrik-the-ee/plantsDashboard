@@ -1,7 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../api.js';
+import CareLog from '../components/CareLog.jsx';
 import { LIGHT_LEVELS, SOIL_TYPES } from '../components/PlantForm.jsx';
+import StatusBadge from '../components/StatusBadge.jsx';
+import WaterButton from '../components/WaterButton.jsx';
 
 const soilLabel = Object.fromEntries(SOIL_TYPES.map((o) => [o.value, o.label]));
 const lightLabel = Object.fromEntries(LIGHT_LEVELS.map((o) => [o.value, o.label]));
@@ -23,20 +26,22 @@ export default function PlantDetail() {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
 
+  const reloadPlant = useCallback(async () => {
+    const row = await api.getPlant(id);
+    setPlant(row);
+    return row;
+  }, [id]);
+
   useEffect(() => {
     let cancelled = false;
-    api
-      .getPlant(id)
-      .then((row) => {
-        if (!cancelled) setPlant(row);
-      })
+    reloadPlant()
       .catch((err) => {
         if (!cancelled) setError(err);
       });
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [reloadPlant]);
 
   async function archive() {
     if (!window.confirm(`Archive ${plant.name}? History is kept.`)) return;
@@ -64,9 +69,15 @@ export default function PlantDetail() {
         <div>
           <h1>
             {plant.name}
+            {!plant.archived_at && plant.water_status && (
+              <StatusBadge status={plant.water_status} />
+            )}
             {plant.archived_at && <span className="badge">Archived</span>}
           </h1>
           {plant.species && <p className="muted">{plant.species}</p>}
+          {plant.next_water_due && !plant.archived_at && (
+            <p className="muted">Next water due: {plant.next_water_due}</p>
+          )}
         </div>
         <div className="button-row">
           <Link to={`/plants/${plant.id}/edit`} className="button">
@@ -81,6 +92,12 @@ export default function PlantDetail() {
       </header>
 
       {error && <p className="bad">{error.message}</p>}
+
+      {!plant.archived_at && (
+        <section className="card">
+          <WaterButton plant={plant} onWatered={reloadPlant} />
+        </section>
+      )}
 
       <section className="card">
         <div className="photo-placeholder large" aria-hidden="true">
@@ -105,6 +122,13 @@ export default function PlantDetail() {
         <Field label="Light" value={lightLabel[plant.light_level]} />
         <Field label="Notes" value={plant.notes} />
       </section>
+
+      <CareLog
+        plantId={plant.id}
+        readOnly={Boolean(plant.archived_at)}
+        refreshKey={plant.last_watered_at}
+        onChange={reloadPlant}
+      />
     </>
   );
 }

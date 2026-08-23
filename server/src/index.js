@@ -5,6 +5,7 @@ import { HOST, PORT, UPLOADS_DIR } from './env.js';
 import { migrate, query, close } from './db.js';
 import { errorHandler } from './lib/errors.js';
 import plantsRouter from './routes/plants.js';
+import eventsRouter from './routes/events.js';
 import settingsRouter from './routes/settings.js';
 
 const app = express();
@@ -25,6 +26,7 @@ app.get('/api/health', async (_req, res) => {
 });
 
 app.use('/api/plants', plantsRouter);
+app.use('/api/events', eventsRouter);
 app.use('/api/settings', settingsRouter);
 
 app.use('/api', (_req, res) => {

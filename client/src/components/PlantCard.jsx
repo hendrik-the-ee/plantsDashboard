@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { SOIL_TYPES } from './PlantForm.jsx';
+import StatusBadge from './StatusBadge.jsx';
 
 const SOIL_LABELS = Object.fromEntries(SOIL_TYPES.map((option) => [option.value, option.label]));
 
@@ -23,6 +24,9 @@ export default function PlantCard({ plant }) {
       <div>
         <h2>
           {plant.name}
+          {!plant.archived_at && plant.water_status && (
+            <StatusBadge status={plant.water_status} />
+          )}
           {plant.archived_at && <span className="badge">Archived</span>}
         </h2>
         {meta && <p className="muted">{meta}</p>}

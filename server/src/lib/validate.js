@@ -123,6 +123,89 @@ export const idParamSchema = z.object({
   id: z.coerce.number().int().positive(),
 });
 
+export const EVENT_TYPES = [
+  'water',
+  'fertilize',
+  'prune',
+  'repot',
+  'harvest',
+  'observation',
+];
+
+export const YIELD_UNITS = ['g', 'kg', 'oz', 'lb', 'count'];
+
+const notFutureDate = z.coerce
+  .date()
+  .refine((value) => value.getTime() <= Date.now(), { message: 'occurred_at cannot be in the future' });
+
+const optionalOccurredAt = z.preprocess(
+  blankToUndefined,
+  z.union([z.undefined(), notFutureDate]).optional(),
+);
+
+const eventNotes = z.preprocess(
+  blankToNull,
+  z.union([z.null(), z.string().trim().min(1)]).optional(),
+);
+
+const eventBase = {
+  occurred_at: optionalOccurredAt,
+  notes: eventNotes,
+};
+
+export const eventCreateSchema = z.discriminatedUnion('type', [
+  z
+    .object({
+      type: z.literal('water'),
+      amount_ml: z.coerce.number().positive(),
+      ...eventBase,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('harvest'),
+      yield_amount: z.coerce.number().positive(),
+      yield_unit: z.enum(YIELD_UNITS),
+      ...eventBase,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('repot'),
+      container_size_liters: optionalPositiveNumber,
+      soil_type: optionalSoil,
+      ...eventBase,
+    })
+    .strict()
+    .refine(
+      (value) => value.container_size_liters != null || value.soil_type != null,
+      { message: 'Repot requires container size and/or soil type' },
+    ),
+  z.object({ type: z.literal('fertilize'), ...eventBase }).strict(),
+  z.object({ type: z.literal('prune'), ...eventBase }).strict(),
+  z.object({ type: z.literal('observation'), ...eventBase }).strict(),
+]);
+
+export const waterSchema = z.object({
+  amount_ml: z.preprocess(
+    blankToUndefined,
+    z.union([z.undefined(), z.coerce.number().positive()]).optional(),
+  ),
+  occurred_at: optionalOccurredAt,
+});
+
+export const eventPatchSchema = z
+  .object({
+    occurred_at: optionalOccurredAt,
+    amount_ml: optionalPositiveNumber,
+    yield_amount: optionalPositiveNumber,
+    yield_unit: z.preprocess(blankToNull, z.union([z.null(), z.enum(YIELD_UNITS)]).optional()),
+    notes: optionalText,
+  })
+  .refine((value) => Object.values(value).some((field) => field !== undefined), {
+    message: 'At least one field is required',
+  });
+
 export function validate(schema, source = 'body') {
   return (req, _res, next) => {
     const result = schema.safeParse(req[source]);

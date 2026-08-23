@@ -12,7 +12,7 @@ export default function Dashboard() {
       <header className="page-header">
         <div>
           <h1>Garden Plants Dashboard</h1>
-          <p className="muted">A card per plant. Care logging arrives in Phase 2.</p>
+          <p className="muted">Watering status and care history for each plant.</p>
         </div>
         <Link to="/plants/new" className="button">
           Add plant

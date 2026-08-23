@@ -35,6 +35,28 @@ export const api = {
   archivePlant(id) {
     return request(`/api/plants/${id}`, { method: 'DELETE' });
   },
+  listEvents(plantId, type) {
+    const query = type ? `?type=${encodeURIComponent(type)}` : '';
+    return request(`/api/plants/${plantId}/events${query}`);
+  },
+  createEvent(plantId, data) {
+    return request(`/api/plants/${plantId}/events`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  waterPlant(plantId, data = {}) {
+    return request(`/api/plants/${plantId}/water`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  updateEvent(id, data) {
+    return request(`/api/events/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+  },
+  deleteEvent(id) {
+    return request(`/api/events/${id}`, { method: 'DELETE' });
+  },
   getSettings() {
     return request('/api/settings');
   },

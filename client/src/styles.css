@@ -136,6 +136,103 @@ h2 {
   vertical-align: middle;
 }
 
+.status-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.status-badge.ok {
+  background: #e3f0e1;
+  color: var(--accent);
+}
+
+.status-badge.due_today {
+  background: #fff3d6;
+  color: #8a6200;
+}
+
+.status-badge.overdue {
+  background: #fde8e4;
+  color: var(--bad);
+}
+
+.button.secondary,
+button.secondary {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.button.secondary:hover,
+button.secondary:hover:not(:disabled) {
+  background: #f0f2ec;
+}
+
+.water-button-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.water-edit-link {
+  font-size: 0.9rem;
+}
+
+.care-log-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.care-log-header h2 {
+  margin: 0;
+}
+
+.care-form {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.timeline {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+}
+
+.timeline li {
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.timeline-main {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  color: var(--bad);
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.link-button:hover {
+  background: none;
+}
+
 .button,
 button {
   display: inline-block;
