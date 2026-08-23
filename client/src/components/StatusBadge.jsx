@@ -1,7 +1,7 @@
 const LABELS = {
-  ok: 'OK',
-  due_today: 'Due today',
-  overdue: 'Overdue',
+  ok: 'Watered',
+  due_today: 'Water today',
+  overdue: 'Watering Overdue',
 };
 
 export default function StatusBadge({ status }) {

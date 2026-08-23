@@ -9,14 +9,13 @@ import WaterButton from '../components/WaterButton.jsx';
 const soilLabel = Object.fromEntries(SOIL_TYPES.map((o) => [o.value, o.label]));
 const lightLabel = Object.fromEntries(LIGHT_LEVELS.map((o) => [o.value, o.label]));
 
-function Field({ label, value }) {
+function SpecItem({ label, value, wide = false }) {
   if (value == null || value === '') return null;
   return (
-    <p>
-      <span className="muted">{label}</span>
-      <br />
-      {value}
-    </p>
+    <div className={wide ? 'spec-item spec-wide' : 'spec-item'}>
+      <span className="spec-label">{label}</span>
+      <span className="spec-value">{value}</span>
+    </div>
   );
 }
 
@@ -34,10 +33,9 @@ export default function PlantDetail() {
 
   useEffect(() => {
     let cancelled = false;
-    reloadPlant()
-      .catch((err) => {
-        if (!cancelled) setError(err);
-      });
+    reloadPlant().catch((err) => {
+      if (!cancelled) setError(err);
+    });
     return () => {
       cancelled = true;
     };
@@ -60,67 +58,69 @@ export default function PlantDetail() {
   if (error && !plant) return <p className="bad">{error.message}</p>;
   if (!plant) return <p className="muted">Loading…</p>;
 
+  const gps =
+    plant.latitude != null && plant.longitude != null
+      ? `${plant.latitude}, ${plant.longitude}`
+      : null;
+
   return (
     <>
-      <p>
+      <p className="back-link">
         <Link to="/">← Dashboard</Link>
       </p>
-      <header className="page-header">
-        <div>
-          <h1>
-            {plant.name}
-            {!plant.archived_at && plant.water_status && (
-              <StatusBadge status={plant.water_status} />
+
+      <section className="card plant-overview">
+        <div className="plant-overview-top">
+          <div className="plant-overview-heading">
+            <h1>
+              {plant.name}
+              {!plant.archived_at && plant.water_status && (
+                <StatusBadge status={plant.water_status} />
+              )}
+              {plant.archived_at && <span className="badge">Archived</span>}
+            </h1>
+            {plant.species && <p className="muted plant-subtitle">{plant.species}</p>}
+            {plant.next_water_due && !plant.archived_at && (
+              <p className="muted plant-subtitle">Next water due: {plant.next_water_due}</p>
             )}
-            {plant.archived_at && <span className="badge">Archived</span>}
-          </h1>
-          {plant.species && <p className="muted">{plant.species}</p>}
-          {plant.next_water_due && !plant.archived_at && (
-            <p className="muted">Next water due: {plant.next_water_due}</p>
-          )}
+          </div>
+          <div className="photo-placeholder photo-square" aria-hidden="true">
+            Photo
+          </div>
         </div>
-        <div className="button-row">
-          <Link to={`/plants/${plant.id}/edit`} className="button">
-            Edit
-          </Link>
-          {!plant.archived_at && (
-            <button type="button" className="button danger" onClick={archive} disabled={busy}>
-              Archive
-            </button>
-          )}
+
+        <div className="plant-overview-actions">
+          <div className="button-row">
+            <Link to={`/plants/${plant.id}/edit`} className="button">
+              Edit
+            </Link>
+            {!plant.archived_at && (
+              <button type="button" className="button danger" onClick={archive} disabled={busy}>
+                Archive
+              </button>
+            )}
+          </div>
+          {!plant.archived_at && <WaterButton plant={plant} onWatered={reloadPlant} />}
         </div>
-      </header>
 
-      {error && <p className="bad">{error.message}</p>}
+        {error && <p className="bad">{error.message}</p>}
 
-      {!plant.archived_at && (
-        <section className="card">
-          <WaterButton plant={plant} onWatered={reloadPlant} />
-        </section>
-      )}
-
-      <section className="card">
-        <div className="photo-placeholder large" aria-hidden="true">
-          Photo
+        <div className="spec-grid">
+          <SpecItem label="GPS" value={gps} />
+          <SpecItem label="Planted" value={plant.planted_on} />
+          <SpecItem label="Acquired" value={plant.acquired_on} />
+          <SpecItem label="Container" value={plant.container_size_liters && `${plant.container_size_liters} L`} />
+          <SpecItem label="Soil" value={soilLabel[plant.soil_type]} />
+          <SpecItem label="Light" value={lightLabel[plant.light_level]} />
+          <SpecItem label="Water every" value={`${plant.watering_interval_days} days`} />
+          <SpecItem
+            label="Fertilize every"
+            value={plant.fertilize_interval_days && `${plant.fertilize_interval_days} days`}
+          />
+          <SpecItem label="Days to maturity" value={plant.days_to_maturity} />
+          <SpecItem label="Edible" value={plant.is_edible ? 'Yes' : 'No'} />
+          <SpecItem label="Notes" value={plant.notes} wide />
         </div>
-        <Field label="Latitude" value={plant.latitude} />
-        <Field label="Longitude" value={plant.longitude} />
-        <Field label="Acquired" value={plant.acquired_on} />
-        <Field label="Planted" value={plant.planted_on} />
-        <Field label="Edible" value={plant.is_edible ? 'Yes' : 'No'} />
-        <Field label="Days to maturity" value={plant.days_to_maturity} />
-        <Field label="Watering interval" value={`${plant.watering_interval_days} days`} />
-        <Field
-          label="Fertilize interval"
-          value={plant.fertilize_interval_days && `${plant.fertilize_interval_days} days`}
-        />
-        <Field
-          label="Container"
-          value={plant.container_size_liters && `${plant.container_size_liters} L`}
-        />
-        <Field label="Soil" value={soilLabel[plant.soil_type]} />
-        <Field label="Light" value={lightLabel[plant.light_level]} />
-        <Field label="Notes" value={plant.notes} />
       </section>
 
       <CareLog
