@@ -4,6 +4,11 @@ import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { DATABASE_URL } from './env.js';
 
+// Keep calendar dates as YYYY-MM-DD strings so midnight UTC cannot shift the day.
+pg.types.setTypeParser(1082, (value) => value);
+// numeric comes back as string; coerce to Number for a JSON-friendly API.
+pg.types.setTypeParser(1700, (value) => (value === null ? null : Number(value)));
+
 const MIGRATIONS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'migrations');
 
 // Arbitrary but fixed: two processes racing to migrate must pick the same key.
