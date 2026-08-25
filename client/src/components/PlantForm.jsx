@@ -18,6 +18,12 @@ export const LIGHT_LEVELS = [
   { value: 'full_sun', label: 'Full sun' },
 ];
 
+export const STARTED_AS = [
+  { value: 'seed', label: 'Seed' },
+  { value: 'seedling', label: 'Seedling' },
+  { value: 'cutting', label: 'Cutting' },
+];
+
 function emptyForm() {
   return {
     name: '',
@@ -31,8 +37,11 @@ function emptyForm() {
     watering_interval_days: '7',
     fertilize_interval_days: '',
     container_size_liters: '',
+    top_area_cm2: '',
+    plant_count: '1',
     soil_type: '',
     light_level: '',
+    started_as: '',
     notes: '',
   };
 }
@@ -62,8 +71,11 @@ function toPayload(form) {
       form.fertilize_interval_days === '' ? null : Number(form.fertilize_interval_days),
     container_size_liters:
       form.container_size_liters === '' ? null : Number(form.container_size_liters),
+    top_area_cm2: form.top_area_cm2 === '' ? null : Number(form.top_area_cm2),
+    plant_count: form.plant_count === '' ? 1 : Number(form.plant_count),
     soil_type: form.soil_type || null,
     light_level: form.light_level || null,
+    started_as: form.started_as || null,
     notes: form.notes.trim() || null,
   };
   return payload;
@@ -185,6 +197,35 @@ export default function PlantForm({ plant, onSubmit, submitLabel, error }) {
           />
         </label>
         <label>
+          Number of plants
+          <input
+            type="number"
+            min="1"
+            step="1"
+            required
+            value={form.plant_count}
+            onChange={(e) => setField('plant_count', e.target.value)}
+          />
+        </label>
+      </div>
+      <div className="form-row">
+        <label>
+          Top area (cm²)
+          <input
+            type="number"
+            min="0.01"
+            step="0.01"
+            value={form.top_area_cm2}
+            onChange={(e) => setField('top_area_cm2', e.target.value)}
+          />
+        </label>
+      </div>
+      <p className="muted">
+        Number of plants is how many individuals this entry covers. Open top area credits
+        yesterday’s rain against watering. Round pot: area ≈ π × (diameter cm / 2)².
+      </p>
+      <div className="form-row">
+        <label>
           Days to maturity
           <input
             type="number"
@@ -206,6 +247,19 @@ export default function PlantForm({ plant, onSubmit, submitLabel, error }) {
             ))}
           </select>
         </label>
+        <label>
+          Started as
+          <select value={form.started_as} onChange={(e) => setField('started_as', e.target.value)}>
+            <option value="">—</option>
+            {STARTED_AS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <div className="form-row">
         <label>
           Light level
           <select value={form.light_level} onChange={(e) => setField('light_level', e.target.value)}>

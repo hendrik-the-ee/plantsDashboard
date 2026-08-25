@@ -6,7 +6,9 @@ export async function getSettings() {
 }
 
 export async function updateSettings(fields) {
-  const keys = ['timezone', 'units'].filter((key) => fields[key] !== undefined);
+  const keys = ['timezone', 'units', 'latitude', 'longitude'].filter(
+    (key) => fields[key] !== undefined,
+  );
   if (keys.length === 0) return getSettings();
   const assignments = keys.map((key, i) => `${key} = $${i + 1}`);
   const values = keys.map((key) => fields[key]);

@@ -1,24 +1,27 @@
 import { useState } from 'react';
 import { api } from '../api.js';
 
-function defaultAmountMl(plant) {
-  if (plant.last_amount_ml != null) return Number(plant.last_amount_ml);
-  if (plant.container_size_liters != null) {
-    return Math.max(250, Math.round(Number(plant.container_size_liters) * 100));
-  }
-  return 500;
-}
-
 export default function WaterButton({ plant, onWatered }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
-  const amount = defaultAmountMl(plant);
+  const [notice, setNotice] = useState(null);
+
+  const usual = plant.usual_water_ml;
+  const suggested = plant.suggested_water_ml;
+  const rainCovered = Boolean(plant.water_rain_covered);
+  const adjusted = Boolean(plant.water_rain_adjusted);
 
   async function handleWater() {
     setBusy(true);
     setError(null);
+    setNotice(null);
     try {
-      await api.waterPlant(plant.id);
+      const result = await api.waterPlant(plant.id);
+      if (result?.skipped) {
+        setNotice('Skipped — yesterday’s rain covered the usual watering amount.');
+        onWatered?.();
+        return;
+      }
       onWatered?.();
     } catch (err) {
       setError(err.message);
@@ -27,14 +30,33 @@ export default function WaterButton({ plant, onWatered }) {
     }
   }
 
+  let label = `Water ${suggested ?? usual ?? 500} ml`;
+  if (rainCovered) {
+    label = 'Rain covered — skip';
+  } else if (adjusted && usual != null && suggested != null) {
+    label = `Water ${suggested} ml`;
+  }
+
   return (
     <div className="water-button-wrap">
       <button type="button" onClick={handleWater} disabled={busy || plant.archived_at}>
-        {busy ? 'Logging…' : `Water ${amount} ml`}
+        {busy ? 'Logging…' : label}
       </button>
+      {adjusted && !rainCovered && usual != null && (
+        <p className="muted water-rain-note">
+          Reduced from {usual} ml for {Number(plant.rain_precip_mm).toFixed(1)} mm rain
+          {plant.rain_credit_ml != null ? ` (−${plant.rain_credit_ml} ml credit)` : ''}
+        </p>
+      )}
+      {rainCovered && (
+        <p className="muted water-rain-note">
+          Yesterday’s rain (~{plant.rain_credit_ml} ml credit) covers the usual {usual} ml.
+        </p>
+      )}
       <a href="#log-event" className="muted water-edit-link">
         edit amount or date
       </a>
+      {notice && <p className="ok">{notice}</p>}
       {error && <p className="bad">{error}</p>}
     </div>
   );

@@ -2,12 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import CareLog from '../components/CareLog.jsx';
-import { LIGHT_LEVELS, SOIL_TYPES } from '../components/PlantForm.jsx';
+import { LIGHT_LEVELS, SOIL_TYPES, STARTED_AS } from '../components/PlantForm.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
 import WaterButton from '../components/WaterButton.jsx';
 
 const soilLabel = Object.fromEntries(SOIL_TYPES.map((o) => [o.value, o.label]));
 const lightLabel = Object.fromEntries(LIGHT_LEVELS.map((o) => [o.value, o.label]));
+const startedAsLabel = Object.fromEntries(STARTED_AS.map((o) => [o.value, o.label]));
 
 function SpecItem({ label, value, wide = false }) {
   if (value == null || value === '') return null;
@@ -110,7 +111,10 @@ export default function PlantDetail() {
           <SpecItem label="Planted" value={plant.planted_on} />
           <SpecItem label="Acquired" value={plant.acquired_on} />
           <SpecItem label="Container" value={plant.container_size_liters && `${plant.container_size_liters} L`} />
+          <SpecItem label="Plants" value={plant.plant_count != null ? plant.plant_count : null} />
+          <SpecItem label="Top area" value={plant.top_area_cm2 && `${plant.top_area_cm2} cm²`} />
           <SpecItem label="Soil" value={soilLabel[plant.soil_type]} />
+          <SpecItem label="Started as" value={startedAsLabel[plant.started_as]} />
           <SpecItem label="Light" value={lightLabel[plant.light_level]} />
           <SpecItem label="Water every" value={`${plant.watering_interval_days} days`} />
           <SpecItem
@@ -128,6 +132,9 @@ export default function PlantDetail() {
         readOnly={Boolean(plant.archived_at)}
         refreshKey={plant.last_watered_at}
         onChange={reloadPlant}
+        suggestedWaterMl={plant.suggested_water_ml}
+        usualWaterMl={plant.usual_water_ml}
+        waterRainAdjusted={plant.water_rain_adjusted}
       />
     </>
   );

@@ -265,6 +265,12 @@ button.secondary:hover:not(:disabled) {
   font-size: 0.9rem;
 }
 
+.water-rain-note {
+  margin: 0;
+  flex-basis: 100%;
+  font-size: 0.85rem;
+}
+
 .care-log-header {
   display: flex;
   justify-content: space-between;
@@ -389,12 +395,138 @@ button.danger {
   gap: 0.85rem;
 }
 
+.fieldset {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.85rem 1rem 1rem;
+  margin: 0;
+}
+
+.fieldset legend {
+  font-weight: 600;
+  padding: 0 0.25rem;
+}
+
+.fieldset-help {
+  margin: 0 0 0.75rem;
+}
+
+.forecast-panel {
+  margin-top: 0;
+}
+
+.forecast-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.forecast-header h2 {
+  margin: 0;
+}
+
+.forecast-yesterday {
+  margin: 0.45rem 0 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.forecast-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.forecast-day {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem;
+  background: #fafbf8;
+}
+
+.forecast-day-label {
+  margin: 0;
+  font-weight: 700;
+}
+
+.forecast-condition {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.forecast-temps {
+  margin: 0.5rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.forecast-meta {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.forecast-advisories {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.forecast-advisories h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.advisory-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.advisory-item {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.advisory-item strong {
+  font-size: 0.95rem;
+}
+
+.advisory-info {
+  background: #eef4ea;
+}
+
+.advisory-medium {
+  background: #fff3d6;
+}
+
+.advisory-high {
+  background: #fde8e4;
+}
+
+.forecast-missing {
+  margin-top: 0;
+}
+
 @media (max-width: 640px) {
   .page-header {
     flex-direction: column;
   }
 
   .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .forecast-strip {
     grid-template-columns: 1fr;
   }
 
