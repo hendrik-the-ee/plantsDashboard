@@ -12,8 +12,11 @@ const COLUMNS = [
   'watering_interval_days',
   'fertilize_interval_days',
   'container_size_liters',
+  'top_area_cm2',
+  'plant_count',
   'soil_type',
   'light_level',
+  'started_as',
   'notes',
 ];
 

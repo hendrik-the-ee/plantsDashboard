@@ -1,5 +1,5 @@
 import { query, tx } from '../db.js';
-import { estimateWaterMl, getPlantWithStatus } from './plantStatus.js';
+import { getPlantWithStatus } from './plantStatus.js';
 import { getPlant } from './plants.js';
 
 export async function listEvents(plantId, { type } = {}) {
@@ -147,7 +147,16 @@ export async function quickWater(plantId, overrides = {}) {
 
   let amount_ml = overrides.amount_ml;
   if (amount_ml == null) {
-    amount_ml = status.last_amount_ml ?? estimateWaterMl(status.container_size_liters);
+    if (status.water_rain_covered || status.suggested_water_ml <= 0) {
+      return {
+        skipped: true,
+        reason: 'rain_covered',
+        usual_water_ml: status.usual_water_ml,
+        rain_credit_ml: status.rain_credit_ml,
+        rain_precip_mm: status.rain_precip_mm,
+      };
+    }
+    amount_ml = status.suggested_water_ml;
   }
 
   return createEvent(plantId, {

@@ -1,4 +1,9 @@
-import { query, tx } from '../db.js';
+import { query } from '../db.js';
+import {
+  adjustWateringForRain,
+  usualWaterMl,
+} from '../lib/rainWatering.js';
+import { getGardenYesterdayPrecipMm } from './gardenWeather.js';
 
 const WATER_STATUS_SQL = `
   CASE
@@ -9,6 +14,31 @@ const WATER_STATUS_SQL = `
     ELSE 'ok'
   END AS water_status
 `;
+
+/** Default ml when there is no water history: ~10% of container volume, min 250 ml. */
+export function estimateWaterMl(containerSizeLiters) {
+  if (containerSizeLiters == null) return 500;
+  return Math.max(250, Math.round(Number(containerSizeLiters) * 100));
+}
+
+function withWaterSuggestion(plant, precipMm) {
+  const usual = usualWaterMl(plant, estimateWaterMl);
+  const adjustment = adjustWateringForRain({
+    usualMl: usual,
+    topAreaCm2: plant.top_area_cm2,
+    precipMm,
+  });
+  return {
+    ...plant,
+    usual_water_ml: adjustment.usualMl,
+    suggested_water_ml: adjustment.suggestedMl,
+    rain_credit_ml: adjustment.creditMl,
+    rain_volume_ml: adjustment.rainMl,
+    rain_precip_mm: adjustment.precipMm,
+    water_rain_adjusted: adjustment.adjusted,
+    water_rain_covered: adjustment.rainCovered,
+  };
+}
 
 export async function listPlantsWithStatus({ includeArchived = false } = {}) {
   const { rows } = await query(
@@ -21,7 +51,8 @@ export async function listPlantsWithStatus({ includeArchived = false } = {}) {
     `,
     [includeArchived],
   );
-  return rows;
+  const precipMm = await getGardenYesterdayPrecipMm();
+  return rows.map((row) => withWaterSuggestion(row, precipMm));
 }
 
 export async function getPlantWithStatus(id) {
@@ -34,11 +65,8 @@ export async function getPlantWithStatus(id) {
     `,
     [id],
   );
-  return rows[0] ?? null;
-}
-
-/** Default ml when there is no water history: ~10% of container volume, min 250 ml. */
-export function estimateWaterMl(containerSizeLiters) {
-  if (containerSizeLiters == null) return 500;
-  return Math.max(250, Math.round(Number(containerSizeLiters) * 100));
+  const plant = rows[0] ?? null;
+  if (!plant) return null;
+  const precipMm = await getGardenYesterdayPrecipMm();
+  return withWaterSuggestion(plant, precipMm);
 }

@@ -63,8 +63,12 @@ router.post(
   asyncHandler(async (req, res) => {
     const plant = await plants.getPlant(req.validated.params.id);
     if (!plant) throw notFound('Plant not found');
-    const event = await events.quickWater(req.validated.params.id, req.validated.body);
-    res.status(201).json(event);
+    const result = await events.quickWater(req.validated.params.id, req.validated.body);
+    if (result?.skipped) {
+      res.status(200).json(result);
+      return;
+    }
+    res.status(201).json(result);
   }),
 );
 

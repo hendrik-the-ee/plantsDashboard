@@ -14,6 +14,8 @@ export const SOIL_TYPES = [
 
 export const LIGHT_LEVELS = ['low', 'medium', 'bright', 'full_sun'];
 
+export const STARTED_AS = ['seed', 'seedling', 'cutting'];
+
 function blankToUndefined(value) {
   if (value === '' || value === null) return undefined;
   return value;
@@ -30,6 +32,7 @@ const optionalText = z.preprocess(blankToNull, z.union([z.null(), z.string().tri
 const optionalDate = z.preprocess(blankToNull, z.union([z.null(), z.iso.date()]).optional());
 const optionalSoil = z.preprocess(blankToNull, z.union([z.null(), z.enum(SOIL_TYPES)]).optional());
 const optionalLight = z.preprocess(blankToNull, z.union([z.null(), z.enum(LIGHT_LEVELS)]).optional());
+const optionalStartedAs = z.preprocess(blankToNull, z.union([z.null(), z.enum(STARTED_AS)]).optional());
 const optionalPositiveInt = z.preprocess(
   blankToNull,
   z.union([z.null(), z.coerce.number().int().positive()]).optional(),
@@ -71,8 +74,10 @@ const plantFields = {
   days_to_maturity: optionalPositiveInt,
   fertilize_interval_days: optionalPositiveInt,
   container_size_liters: optionalPositiveNumber,
+  top_area_cm2: optionalPositiveNumber,
   soil_type: optionalSoil,
   light_level: optionalLight,
+  started_as: optionalStartedAs,
   notes: optionalText,
 };
 
@@ -81,6 +86,10 @@ export const plantCreateSchema = z
     name: z.string().trim().min(1, 'Name is required'),
     ...plantFields,
     is_edible: z.boolean().optional().default(false),
+    plant_count: z.preprocess(
+      (value) => (value === '' || value === undefined || value === null ? 1 : value),
+      z.coerce.number().int().positive(),
+    ),
     watering_interval_days: z.preprocess(
       (value) => (value === '' || value === undefined || value === null ? 7 : value),
       z.coerce.number().int().positive(),
@@ -93,6 +102,10 @@ export const plantPatchSchema = z
     name: z.preprocess(blankToUndefined, z.union([z.undefined(), z.string().trim().min(1)]).optional()),
     ...plantFields,
     is_edible: z.boolean().optional(),
+    plant_count: z.preprocess(
+      blankToUndefined,
+      z.union([z.undefined(), z.coerce.number().int().positive()]).optional(),
+    ),
     watering_interval_days: z.preprocess(
       blankToUndefined,
       z.union([z.undefined(), z.coerce.number().int().positive()]).optional(),
@@ -114,8 +127,11 @@ export const settingsPatchSchema = z
       .refine((value) => timeZones.has(value), { message: 'Unknown IANA timezone' })
       .optional(),
     units: z.enum(['metric', 'imperial']).optional(),
+    latitude: optionalLatitude,
+    longitude: optionalLongitude,
   })
-  .refine((value) => value.timezone !== undefined || value.units !== undefined, {
+  .superRefine(coordinatesPair)
+  .refine((value) => Object.values(value).some((field) => field !== undefined), {
     message: 'At least one field is required',
   });
 

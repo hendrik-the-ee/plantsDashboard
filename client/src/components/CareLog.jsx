@@ -11,11 +11,11 @@ import {
   toLocalInputValue,
 } from '../lib/careEvents.js';
 
-function emptyForm(type = 'water') {
+function emptyForm(type = 'water', suggestedWaterMl) {
   return {
     type,
     occurred_at: '',
-    amount_ml: '',
+    amount_ml: suggestedWaterMl != null && suggestedWaterMl > 0 ? String(suggestedWaterMl) : '',
     yield_amount: '',
     yield_unit: 'g',
     container_size_liters: '',
@@ -24,12 +24,22 @@ function emptyForm(type = 'water') {
   };
 }
 
-export default function CareLog({ plantId, readOnly = false, refreshKey, onChange }) {
+export default function CareLog({
+  plantId,
+  readOnly = false,
+  refreshKey,
+  onChange,
+  suggestedWaterMl,
+  usualWaterMl,
+  waterRainAdjusted,
+}) {
   const [events, setEvents] = useState([]);
   const [filter, setFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [form, setForm] = useState(emptyForm());
+  const [form, setForm] = useState(() =>
+    emptyForm('water', suggestedWaterMl > 0 ? suggestedWaterMl : undefined),
+  );
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(true);
 
@@ -79,7 +89,7 @@ export default function CareLog({ plantId, readOnly = false, refreshKey, onChang
     setError(null);
     try {
       await api.createEvent(plantId, buildPayload());
-      setForm(emptyForm(form.type));
+      setForm(emptyForm(form.type, suggestedWaterMl > 0 ? suggestedWaterMl : undefined));
       setShowForm(false);
       await reload();
       onChange?.();
@@ -159,17 +169,24 @@ export default function CareLog({ plantId, readOnly = false, refreshKey, onChang
           </div>
 
           {form.type === 'water' && (
-            <label>
-              Amount (ml)
-              <input
-                type="number"
-                min="0.1"
-                step="0.1"
-                required
-                value={form.amount_ml}
-                onChange={(e) => setField('amount_ml', e.target.value)}
-              />
-            </label>
+            <>
+              <label>
+                Amount (ml)
+                <input
+                  type="number"
+                  min="0.1"
+                  step="0.1"
+                  required
+                  value={form.amount_ml}
+                  onChange={(e) => setField('amount_ml', e.target.value)}
+                />
+              </label>
+              {waterRainAdjusted && usualWaterMl != null && suggestedWaterMl != null && (
+                <p className="muted">
+                  Suggested {suggestedWaterMl} ml after rain credit (usual {usualWaterMl} ml).
+                </p>
+              )}
+            </>
           )}
 
           {form.type === 'harvest' && (

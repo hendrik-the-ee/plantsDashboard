@@ -63,4 +63,7 @@ export const api = {
   updateSettings(data) {
     return request('/api/settings', { method: 'PATCH', body: JSON.stringify(data) });
   },
+  getWeather() {
+    return request('/api/weather');
+  },
 };
