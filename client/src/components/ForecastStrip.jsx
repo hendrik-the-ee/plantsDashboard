@@ -33,12 +33,6 @@ function windUnit(units) {
   return units === 'imperial' ? 'mph' : 'km/h';
 }
 
-function severityClass(severity) {
-  if (severity === 'high') return 'advisory-high';
-  if (severity === 'medium') return 'advisory-medium';
-  return 'advisory-info';
-}
-
 function yesterdayRainLabel(yesterday, units) {
   if (!yesterday) return null;
   if (yesterday.precipAmount == null || yesterday.unavailable) {
@@ -50,7 +44,7 @@ function yesterdayRainLabel(yesterday, units) {
 }
 
 export default function ForecastStrip({ weather }) {
-  const { days, advisories, timezone, units, stale, yesterday } = weather;
+  const { days, timezone, units, stale, yesterday } = weather;
   const yesterdayRain = yesterdayRainLabel(yesterday, units);
 
   return (
@@ -88,21 +82,6 @@ export default function ForecastStrip({ weather }) {
           </article>
         ))}
       </div>
-
-      {advisories.length > 0 && (
-        <div className="forecast-advisories">
-          <h3>Care advisories</h3>
-          <ul className="advisory-list">
-            {advisories.map((item) => (
-              <li key={item.key} className={`advisory-item ${severityClass(item.severity)}`}>
-                <strong>{item.title}</strong>
-                <span>{item.reason}</span>
-                <span>{item.action}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </section>
   );
 }

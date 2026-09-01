@@ -2,9 +2,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import CareLog from '../components/CareLog.jsx';
+import PhotoUploader from '../components/PhotoUploader.jsx';
 import { LIGHT_LEVELS, SOIL_TYPES, STARTED_AS } from '../components/PlantForm.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
 import WaterButton from '../components/WaterButton.jsx';
+import { plantPhotoUrl } from '../lib/photos.js';
 
 const soilLabel = Object.fromEntries(SOIL_TYPES.map((o) => [o.value, o.label]));
 const lightLabel = Object.fromEntries(LIGHT_LEVELS.map((o) => [o.value, o.label]));
@@ -59,10 +61,7 @@ export default function PlantDetail() {
   if (error && !plant) return <p className="bad">{error.message}</p>;
   if (!plant) return <p className="muted">Loading…</p>;
 
-  const gps =
-    plant.latitude != null && plant.longitude != null
-      ? `${plant.latitude}, ${plant.longitude}`
-      : null;
+  const thumbUrl = plantPhotoUrl(plant.latest_photo_path);
 
   return (
     <>
@@ -85,8 +84,8 @@ export default function PlantDetail() {
               <p className="muted plant-subtitle">Next water due: {plant.next_water_due}</p>
             )}
           </div>
-          <div className="photo-placeholder photo-square" aria-hidden="true">
-            Photo
+          <div className="photo-placeholder photo-square" aria-hidden={!thumbUrl}>
+            {thumbUrl ? <img src={thumbUrl} alt="" /> : 'Photo'}
           </div>
         </div>
 
@@ -107,7 +106,6 @@ export default function PlantDetail() {
         {error && <p className="bad">{error.message}</p>}
 
         <div className="spec-grid">
-          <SpecItem label="GPS" value={gps} />
           <SpecItem label="Planted" value={plant.planted_on} />
           <SpecItem label="Acquired" value={plant.acquired_on} />
           <SpecItem label="Container" value={plant.container_size_liters && `${plant.container_size_liters} L`} />
@@ -126,6 +124,8 @@ export default function PlantDetail() {
           <SpecItem label="Notes" value={plant.notes} wide />
         </div>
       </section>
+
+      {!plant.archived_at && <PhotoUploader plantId={plant.id} onChange={reloadPlant} />}
 
       <CareLog
         plantId={plant.id}

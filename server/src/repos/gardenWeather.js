@@ -7,8 +7,8 @@ import * as weather from './weather.js';
  * Yesterday's garden rainfall in millimetres, or null if unknown / no location.
  * Prefers a fresh weather_cache row; otherwise hits the Archive API in mm.
  */
-export async function getGardenYesterdayPrecipMm() {
-  const row = await settings.getSettings();
+export async function getGardenYesterdayPrecipMm(ownerId) {
+  const row = await settings.getSettings(ownerId);
   if (!row || row.latitude == null || row.longitude == null) return null;
 
   const key = weather.locationKey(row.latitude, row.longitude);

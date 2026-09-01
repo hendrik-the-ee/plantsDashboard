@@ -3,6 +3,7 @@ import { asyncHandler } from '../lib/asyncHandler.js';
 import { HttpError } from '../lib/errors.js';
 import { fetchForecast } from '../lib/openMeteo.js';
 import { buildWeatherAdvisories } from '../lib/weatherAdvice.js';
+import { requireUserId } from '../middleware/ownership.js';
 import { listPlantsWithStatus } from '../repos/plantStatus.js';
 import * as settings from '../repos/settings.js';
 import * as weather from '../repos/weather.js';
@@ -11,8 +12,9 @@ const router = Router();
 
 router.get(
   '/',
-  asyncHandler(async (_req, res) => {
-    const row = await settings.getSettings();
+  asyncHandler(async (req, res) => {
+    const userId = requireUserId(req);
+    const row = await settings.getSettings(userId);
     if (!row) throw new HttpError(500, 'Settings not found');
     if (row.latitude == null || row.longitude == null) {
       throw new HttpError(400, 'Garden location not set');
@@ -50,7 +52,7 @@ router.get(
       }
     }
 
-    const plants = await listPlantsWithStatus({ includeArchived: false });
+    const plants = await listPlantsWithStatus(userId, { includeArchived: false });
     const advisories = buildWeatherAdvisories({
       days: forecast.days,
       plants,

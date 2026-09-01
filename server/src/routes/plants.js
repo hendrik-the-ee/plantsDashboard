@@ -1,6 +1,9 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { asyncHandler } from '../lib/asyncHandler.js';
 import { notFound } from '../lib/errors.js';
+import { lookupSpecies } from '../lib/plantLookup.js';
+import { loadOwnedPlant, requireUserId } from '../middleware/ownership.js';
 import {
   eventCreateSchema,
   idParamSchema,
@@ -15,12 +18,26 @@ import * as plants from '../repos/plants.js';
 
 const router = Router();
 
+const speciesLookupSchema = z.object({
+  q: z.string().trim().min(2, 'Query must be at least 2 characters'),
+});
+
+router.get(
+  '/species-lookup',
+  validate(speciesLookupSchema, 'query'),
+  asyncHandler(async (req, res) => {
+    res.json(await lookupSpecies(req.validated.query.q));
+  }),
+);
+
 router.get(
   '/',
   asyncHandler(async (req, res) => {
+    const userId = requireUserId(req);
     const includeArchived =
       req.query.includeArchived === '1' || req.query.includeArchived === 'true';
-    res.json(await listPlantsWithStatus({ includeArchived }));
+    const q = typeof req.query.q === 'string' && req.query.q.trim() ? req.query.q.trim() : undefined;
+    res.json(await listPlantsWithStatus(userId, { includeArchived, q }));
   }),
 );
 
@@ -28,7 +45,8 @@ router.post(
   '/',
   validate(plantCreateSchema),
   asyncHandler(async (req, res) => {
-    const plant = await plants.createPlant(req.validated.body);
+    const userId = requireUserId(req);
+    const plant = await plants.createPlant(userId, req.validated.body);
     res.status(201).json(plant);
   }),
 );
@@ -36,11 +54,10 @@ router.post(
 router.get(
   '/:id/events',
   validate(idParamSchema, 'params'),
+  loadOwnedPlant('id'),
   asyncHandler(async (req, res) => {
-    const plant = await plants.getPlant(req.validated.params.id);
-    if (!plant) throw notFound('Plant not found');
     const type = typeof req.query.type === 'string' ? req.query.type : undefined;
-    res.json(await events.listEvents(req.validated.params.id, { type }));
+    res.json(await events.listEvents(req.plant.id, req.userId, { type }));
   }),
 );
 
@@ -48,10 +65,9 @@ router.post(
   '/:id/events',
   validate(idParamSchema, 'params'),
   validate(eventCreateSchema),
+  loadOwnedPlant('id'),
   asyncHandler(async (req, res) => {
-    const plant = await plants.getPlant(req.validated.params.id);
-    if (!plant) throw notFound('Plant not found');
-    const event = await events.createEvent(req.validated.params.id, req.validated.body);
+    const event = await events.createEvent(req.plant.id, req.userId, req.validated.body);
     res.status(201).json(event);
   }),
 );
@@ -60,10 +76,9 @@ router.post(
   '/:id/water',
   validate(idParamSchema, 'params'),
   validate(waterSchema),
+  loadOwnedPlant('id'),
   asyncHandler(async (req, res) => {
-    const plant = await plants.getPlant(req.validated.params.id);
-    if (!plant) throw notFound('Plant not found');
-    const result = await events.quickWater(req.validated.params.id, req.validated.body);
+    const result = await events.quickWater(req.plant.id, req.userId, req.validated.body);
     if (result?.skipped) {
       res.status(200).json(result);
       return;
@@ -76,7 +91,8 @@ router.get(
   '/:id',
   validate(idParamSchema, 'params'),
   asyncHandler(async (req, res) => {
-    const plant = await getPlantWithStatus(req.validated.params.id);
+    const userId = requireUserId(req);
+    const plant = await getPlantWithStatus(req.validated.params.id, userId);
     if (!plant) throw notFound('Plant not found');
     res.json(plant);
   }),
@@ -87,9 +103,10 @@ router.patch(
   validate(idParamSchema, 'params'),
   validate(plantPatchSchema),
   asyncHandler(async (req, res) => {
-    const plant = await plants.updatePlant(req.validated.params.id, req.validated.body);
+    const userId = requireUserId(req);
+    const plant = await plants.updatePlant(req.validated.params.id, userId, req.validated.body);
     if (!plant) throw notFound('Plant not found');
-    res.json(await getPlantWithStatus(plant.id));
+    res.json(await getPlantWithStatus(plant.id, userId));
   }),
 );
 
@@ -97,7 +114,8 @@ router.delete(
   '/:id',
   validate(idParamSchema, 'params'),
   asyncHandler(async (req, res) => {
-    const plant = await plants.archivePlant(req.validated.params.id);
+    const userId = requireUserId(req);
+    const plant = await plants.archivePlant(req.validated.params.id, userId);
     if (!plant) throw notFound('Plant not found');
     res.json(plant);
   }),

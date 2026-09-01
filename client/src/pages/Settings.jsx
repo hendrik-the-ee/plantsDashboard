@@ -1,23 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { api } from '../api.js';
-
-const TIMEZONES = Intl.supportedValuesOf('timeZone');
-
-function averagePlantCoordinates(plants) {
-  const withCoords = plants.filter(
-    (plant) => plant.latitude != null && plant.longitude != null && !plant.archived_at,
-  );
-  if (withCoords.length === 0) return null;
-  const latitude =
-    withCoords.reduce((sum, plant) => sum + Number(plant.latitude), 0) / withCoords.length;
-  const longitude =
-    withCoords.reduce((sum, plant) => sum + Number(plant.longitude), 0) / withCoords.length;
-  return {
-    latitude: Number(latitude.toFixed(5)),
-    longitude: Number(longitude.toFixed(5)),
-  };
-}
+import { timezoneLabel, timezoneOptions } from '../lib/timezones.js';
 
 export default function Settings() {
   const [settings, setSettings] = useState(null);
@@ -29,7 +12,6 @@ export default function Settings() {
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [locating, setLocating] = useState(false);
-  const [copying, setCopying] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -96,25 +78,6 @@ export default function Settings() {
     );
   }
 
-  async function handleCopyFromPlants() {
-    setCopying(true);
-    setError(null);
-    try {
-      const plants = await api.listPlants(false);
-      const coords = averagePlantCoordinates(plants);
-      if (!coords) {
-        setError(new Error('No active plants with GPS coordinates to copy from.'));
-        return;
-      }
-      setLatitude(coords.latitude);
-      setLongitude(coords.longitude);
-    } catch (err) {
-      setError(err);
-    } finally {
-      setCopying(false);
-    }
-  }
-
   if (error && !settings) return <p className="bad">{error.message}</p>;
   if (!settings) return <p className="muted">Loading…</p>;
 
@@ -128,9 +91,9 @@ export default function Settings() {
         <label>
           Timezone
           <select value={timezone} onChange={(e) => setTimezone(e.target.value)}>
-            {TIMEZONES.map((zone) => (
+            {timezoneOptions(timezone).map((zone) => (
               <option key={zone} value={zone}>
-                {zone}
+                {timezoneLabel(zone)}
               </option>
             ))}
           </select>
@@ -178,14 +141,6 @@ export default function Settings() {
           <div className="button-row">
             <button type="button" className="secondary" onClick={handleUseLocation} disabled={locating}>
               {locating ? 'Locating…' : 'Use my location'}
-            </button>
-            <button
-              type="button"
-              className="secondary"
-              onClick={handleCopyFromPlants}
-              disabled={copying}
-            >
-              {copying ? 'Copying…' : 'Copy from plants'}
             </button>
           </div>
         </fieldset>
