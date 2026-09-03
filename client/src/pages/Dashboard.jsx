@@ -9,7 +9,7 @@ import { useWeather } from '../hooks/useWeather.js';
 
 export default function Dashboard() {
   const [includeArchived, setIncludeArchived] = useState(false);
-  const { plants, loading, error } = usePlants(includeArchived);
+  const { plants, loading, error, reload: reloadPlants } = usePlants(includeArchived);
   const {
     weather,
     loading: weatherLoading,
@@ -21,7 +21,14 @@ export default function Dashboard() {
     loading: recsLoading,
     error: recsError,
     dismiss,
+    reload: reloadRecommendations,
   } = useRecommendations();
+
+  const plantsById = Object.fromEntries(plants.map((plant) => [plant.id, plant]));
+
+  async function handleWatered() {
+    await Promise.all([reloadPlants(), reloadRecommendations()]);
+  }
 
   return (
     <>
@@ -42,6 +49,8 @@ export default function Dashboard() {
           loading={recsLoading}
           error={recsError}
           onDismiss={dismiss}
+          plantsById={plantsById}
+          onWatered={handleWatered}
         />
       </section>
 
