@@ -1,5 +1,4 @@
 const STALE_DAYS = 30;
-const REPOT_YEARS_PER_LITER = 0.5;
 const CONTAINER_WATER_RATIO_WARN = 0.05;
 
 function daysBetween(from, to) {
@@ -84,23 +83,6 @@ export function buildRecommendations({
       }
     }
 
-    const lastRepot = plantEvents.find((event) => event.type === 'repot');
-    if (plant.container_size_liters) {
-      const repotIntervalDays = Math.round(
-        Number(plant.container_size_liters) * REPOT_YEARS_PER_LITER * 365,
-      );
-      const daysSinceRepot = lastRepot ? daysBetween(lastRepot.occurred_at, today) : Infinity;
-      if (daysSinceRepot >= repotIntervalDays) {
-        push({
-          key: `repot_due:${plant.id}`,
-          plantId: plant.id,
-          severity: 'low',
-          title: `Consider repotting ${plant.name}`,
-          reason: `Container ${plant.container_size_liters} L may need refreshing`,
-          action: 'repot',
-        });
-      }
-    }
 
     const waterEvents = plantEvents.filter((event) => event.type === 'water');
     if (
