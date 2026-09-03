@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { api } from '../api.js';
 
 export const SOIL_TYPES = [
   { value: 'potting_mix', label: 'Potting mix' },
@@ -22,14 +23,13 @@ export const STARTED_AS = [
   { value: 'seed', label: 'Seed' },
   { value: 'seedling', label: 'Seedling' },
   { value: 'cutting', label: 'Cutting' },
+  { value: 'root_spud', label: 'Root / spud' },
 ];
 
 function emptyForm() {
   return {
     name: '',
     species: '',
-    latitude: '',
-    longitude: '',
     acquired_on: '',
     planted_on: '',
     is_edible: false,
@@ -60,8 +60,6 @@ function toPayload(form) {
   const payload = {
     name: form.name.trim(),
     species: form.species.trim() || null,
-    latitude: form.latitude === '' ? null : Number(form.latitude),
-    longitude: form.longitude === '' ? null : Number(form.longitude),
     acquired_on: form.acquired_on || null,
     planted_on: form.planted_on || null,
     is_edible: Boolean(form.is_edible),
@@ -84,6 +82,49 @@ function toPayload(form) {
 export default function PlantForm({ plant, onSubmit, submitLabel, error }) {
   const [form, setForm] = useState(() => (plant ? fromPlant(plant) : emptyForm()));
   const [saving, setSaving] = useState(false);
+  const [speciesHint, setSpeciesHint] = useState(null);
+  const [speciesLookupError, setSpeciesLookupError] = useState(null);
+  const [speciesLooking, setSpeciesLooking] = useState(false);
+  const [speciesManual, setSpeciesManual] = useState(Boolean(plant?.species));
+  const speciesLookupId = useRef(0);
+
+  useEffect(() => {
+    const name = form.name.trim();
+    if (name.length < 2 || speciesManual) {
+      setSpeciesHint(null);
+      setSpeciesLookupError(null);
+      setSpeciesLooking(false);
+      return undefined;
+    }
+
+    const lookupId = ++speciesLookupId.current;
+    setSpeciesLooking(true);
+    setSpeciesHint(null);
+    setSpeciesLookupError(null);
+
+    const timer = setTimeout(async () => {
+      try {
+        const result = await api.lookupSpecies(name);
+        if (speciesLookupId.current !== lookupId) return;
+        setSpeciesHint(result);
+        setSpeciesLookupError(null);
+        if (result.species) {
+          setForm((current) => {
+            if (current.species.trim()) return current;
+            return { ...current, species: result.species };
+          });
+        }
+      } catch (err) {
+        if (speciesLookupId.current !== lookupId) return;
+        setSpeciesHint(null);
+        setSpeciesLookupError(err.message);
+      } finally {
+        if (speciesLookupId.current === lookupId) setSpeciesLooking(false);
+      }
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [form.name, speciesManual]);
 
   function setField(name, value) {
     setForm((current) => ({ ...current, [name]: value }));
@@ -99,6 +140,27 @@ export default function PlantForm({ plant, onSubmit, submitLabel, error }) {
     }
   }
 
+  function speciesStatusMessage() {
+    if (form.species.trim()) return null;
+    if (speciesManual) {
+      return 'Enter a scientific name, or clear this field and change the plant name to look up again.';
+    }
+    const name = form.name.trim();
+    if (name.length < 2) {
+      return 'Type a plant name (2+ characters) to look up a scientific name via Wikidata.';
+    }
+    if (speciesLooking) return 'Looking up scientific name in Wikidata…';
+    if (speciesLookupError) {
+      return 'Wikidata lookup failed — enter the scientific name manually.';
+    }
+    if (speciesHint && !speciesHint.species) {
+      return `No plant taxon found in Wikidata for “${name}”. Enter the scientific name manually.`;
+    }
+    return null;
+  }
+
+  const speciesStatus = speciesStatusMessage();
+
   return (
     <form className="form" onSubmit={handleSubmit}>
       <label>
@@ -110,34 +172,34 @@ export default function PlantForm({ plant, onSubmit, submitLabel, error }) {
         />
       </label>
       <label>
-        Species
-        <input value={form.species} onChange={(e) => setField('species', e.target.value)} />
+        Species (scientific name)
+        <input
+          value={form.species}
+          onChange={(e) => {
+            setSpeciesManual(true);
+            setField('species', e.target.value);
+          }}
+        />
       </label>
-      <div className="form-row">
-        <label>
-          Latitude
-          <input
-            type="number"
-            min="-90"
-            max="90"
-            step="0.00001"
-            value={form.latitude}
-            onChange={(e) => setField('latitude', e.target.value)}
-          />
-        </label>
-        <label>
-          Longitude
-          <input
-            type="number"
-            min="-180"
-            max="180"
-            step="0.00001"
-            value={form.longitude}
-            onChange={(e) => setField('longitude', e.target.value)}
-          />
-        </label>
-      </div>
-      <p className="muted">GPS coordinates. Leave both blank if the plant is not placed yet.</p>
+      {speciesHint?.species && (
+        <p className="muted species-hint">
+          Matched via{' '}
+          <a href={speciesHint.sourceUrl} target="_blank" rel="noreferrer">
+            {speciesHint.sourceLabel}
+          </a>
+          {speciesHint.wikipediaUrl && (
+            <>
+              {' '}
+              ·{' '}
+              <a href={speciesHint.wikipediaUrl} target="_blank" rel="noreferrer">
+                Wikipedia
+              </a>
+            </>
+          )}
+          {speciesHint.description ? ` — ${speciesHint.description}` : null}
+        </p>
+      )}
+      {speciesStatus && <p className="muted species-hint">{speciesStatus}</p>}
       <div className="form-row">
         <label>
           Acquired on

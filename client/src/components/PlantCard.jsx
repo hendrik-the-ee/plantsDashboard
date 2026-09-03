@@ -1,25 +1,23 @@
 import { Link } from 'react-router-dom';
+import { plantPhotoUrl } from '../lib/photos.js';
 import { SOIL_TYPES } from './PlantForm.jsx';
 import StatusBadge from './StatusBadge.jsx';
 
 const SOIL_LABELS = Object.fromEntries(SOIL_TYPES.map((option) => [option.value, option.label]));
 
 export default function PlantCard({ plant }) {
-  const gps =
-    plant.latitude != null && plant.longitude != null
-      ? `GPS ${plant.latitude}, ${plant.longitude}`
-      : null;
-  const meta = [gps, plant.species].filter(Boolean).join(' · ');
+  const meta = plant.species || null;
   const extras = [
     plant.planted_on && `Planted ${plant.planted_on}`,
     plant.container_size_liters && `${plant.container_size_liters} L`,
     plant.soil_type && SOIL_LABELS[plant.soil_type],
   ].filter(Boolean);
+  const thumbUrl = plantPhotoUrl(plant.latest_photo_path);
 
   return (
     <Link to={`/plants/${plant.id}`} className="card plant-card">
-      <div className="photo-placeholder" aria-hidden="true">
-        Photo
+      <div className="photo-placeholder" aria-hidden={!thumbUrl}>
+        {thumbUrl ? <img src={thumbUrl} alt="" /> : 'Photo'}
       </div>
       <div>
         <h2>

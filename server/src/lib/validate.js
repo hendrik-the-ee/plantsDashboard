@@ -14,7 +14,7 @@ export const SOIL_TYPES = [
 
 export const LIGHT_LEVELS = ['low', 'medium', 'bright', 'full_sun'];
 
-export const STARTED_AS = ['seed', 'seedling', 'cutting'];
+export const STARTED_AS = ['seed', 'seedling', 'cutting', 'root_spud'];
 
 function blankToUndefined(value) {
   if (value === '' || value === null) return undefined;
@@ -67,8 +67,6 @@ function coordinatesPair(value, ctx) {
 
 const plantFields = {
   species: optionalText,
-  latitude: optionalLatitude,
-  longitude: optionalLongitude,
   acquired_on: optionalDate,
   planted_on: optionalDate,
   days_to_maturity: optionalPositiveInt,
@@ -94,8 +92,7 @@ export const plantCreateSchema = z
       (value) => (value === '' || value === undefined || value === null ? 7 : value),
       z.coerce.number().int().positive(),
     ),
-  })
-  .superRefine(coordinatesPair);
+  });
 
 export const plantPatchSchema = z
   .object({
@@ -111,12 +108,17 @@ export const plantPatchSchema = z
       z.union([z.undefined(), z.coerce.number().int().positive()]).optional(),
     ),
   })
-  .superRefine(coordinatesPair)
   .refine((value) => Object.values(value).some((field) => field !== undefined), {
     message: 'At least one field is required',
   });
 
 const timeZones = new Set(Intl.supportedValuesOf('timeZone'));
+// Postgres and our schema default to UTC, but Node's IANA list omits the alias.
+timeZones.add('UTC');
+
+function isKnownTimezone(value) {
+  return timeZones.has(value);
+}
 
 export const settingsPatchSchema = z
   .object({
@@ -124,7 +126,7 @@ export const settingsPatchSchema = z
       .string()
       .trim()
       .min(1)
-      .refine((value) => timeZones.has(value), { message: 'Unknown IANA timezone' })
+      .refine((value) => isKnownTimezone(value), { message: 'Unknown IANA timezone' })
       .optional(),
     units: z.enum(['metric', 'imperial']).optional(),
     latitude: optionalLatitude,

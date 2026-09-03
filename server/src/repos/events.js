@@ -2,24 +2,38 @@ import { query, tx } from '../db.js';
 import { getPlantWithStatus } from './plantStatus.js';
 import { getPlant } from './plants.js';
 
-export async function listEvents(plantId, { type } = {}) {
-  const params = [plantId];
+export async function listEvents(plantId, ownerId, { type } = {}) {
+  const params = [plantId, ownerId];
   let sql = `
-    SELECT *
-    FROM care_events
-    WHERE plant_id = $1
+    SELECT e.*
+    FROM care_events e
+    JOIN plants p ON p.id = e.plant_id
+    WHERE e.plant_id = $1 AND p.owner_id = $2
   `;
   if (type) {
     params.push(type);
-    sql += ` AND type = $${params.length}`;
+    sql += ` AND e.type = $${params.length}`;
   }
-  sql += ' ORDER BY occurred_at DESC, id DESC';
+  sql += ' ORDER BY e.occurred_at DESC, e.id DESC';
   const { rows } = await query(sql, params);
   return rows;
 }
 
 export async function getEvent(id) {
   const { rows } = await query('SELECT * FROM care_events WHERE id = $1', [id]);
+  return rows[0] ?? null;
+}
+
+export async function getEventForOwner(id, ownerId) {
+  const { rows } = await query(
+    `
+      SELECT e.*
+      FROM care_events e
+      JOIN plants p ON p.id = e.plant_id
+      WHERE e.id = $1 AND p.owner_id = $2
+    `,
+    [id, ownerId],
+  );
   return rows[0] ?? null;
 }
 
@@ -52,8 +66,8 @@ async function insertEvent(client, plantId, fields) {
   return rows[0];
 }
 
-export async function createEvent(plantId, fields) {
-  const plant = await getPlant(plantId);
+export async function createEvent(plantId, ownerId, fields) {
+  const plant = await getPlant(plantId, ownerId);
   if (!plant) return null;
 
   if (fields.type === 'repot') {
@@ -89,9 +103,9 @@ export async function createEvent(plantId, fields) {
           `
             UPDATE plants
             SET ${assignments.join(', ')}, updated_at = now()
-            WHERE id = $${keys.length + 1}
+            WHERE id = $${keys.length + 1} AND owner_id = $${keys.length + 2}
           `,
-          [...keys.map((key) => plantPatch[key]), plantId],
+          [...keys.map((key) => plantPatch[key]), plantId, ownerId],
         );
       }
 
@@ -111,7 +125,10 @@ export async function createEvent(plantId, fields) {
   return insertEvent({ query: (...args) => query(...args) }, plantId, payload);
 }
 
-export async function updateEvent(id, fields) {
+export async function updateEvent(id, ownerId, fields) {
+  const existing = await getEventForOwner(id, ownerId);
+  if (!existing) return null;
+
   const allowed = [
     'occurred_at',
     'amount_ml',
@@ -120,7 +137,7 @@ export async function updateEvent(id, fields) {
     'notes',
   ];
   const keys = allowed.filter((key) => fields[key] !== undefined);
-  if (keys.length === 0) return getEvent(id);
+  if (keys.length === 0) return existing;
 
   const assignments = keys.map((key, i) => `${key} = $${i + 1}`);
   const values = keys.map((key) => fields[key]);
@@ -136,13 +153,15 @@ export async function updateEvent(id, fields) {
   return rows[0] ?? null;
 }
 
-export async function deleteEvent(id) {
+export async function deleteEvent(id, ownerId) {
+  const existing = await getEventForOwner(id, ownerId);
+  if (!existing) return null;
   const { rows } = await query('DELETE FROM care_events WHERE id = $1 RETURNING *', [id]);
   return rows[0] ?? null;
 }
 
-export async function quickWater(plantId, overrides = {}) {
-  const status = await getPlantWithStatus(plantId);
+export async function quickWater(plantId, ownerId, overrides = {}) {
+  const status = await getPlantWithStatus(plantId, ownerId);
   if (!status) return null;
 
   let amount_ml = overrides.amount_ml;
@@ -159,9 +178,38 @@ export async function quickWater(plantId, overrides = {}) {
     amount_ml = status.suggested_water_ml;
   }
 
-  return createEvent(plantId, {
+  return createEvent(plantId, ownerId, {
     type: 'water',
     amount_ml,
     occurred_at: overrides.occurred_at,
   });
+}
+
+export async function listRecentEventsForOwner(ownerId, { limit = 500 } = {}) {
+  const { rows } = await query(
+    `
+      SELECT e.*, p.name AS plant_name
+      FROM care_events e
+      JOIN plants p ON p.id = e.plant_id
+      WHERE p.owner_id = $1
+      ORDER BY e.occurred_at DESC
+      LIMIT $2
+    `,
+    [ownerId, limit],
+  );
+  return rows;
+}
+
+export async function getLastEventByType(plantId, type) {
+  const { rows } = await query(
+    `
+      SELECT *
+      FROM care_events
+      WHERE plant_id = $1 AND type = $2
+      ORDER BY occurred_at DESC
+      LIMIT 1
+    `,
+    [plantId, type],
+  );
+  return rows[0] ?? null;
 }

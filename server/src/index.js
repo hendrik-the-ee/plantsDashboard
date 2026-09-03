@@ -1,21 +1,26 @@
 import fs from 'node:fs';
+import path from 'node:path';
 import express from 'express';
 import morgan from 'morgan';
-import { HOST, PORT, UPLOADS_DIR } from './env.js';
+import { clerkMiddleware, clerkOptions, requireAuth } from './lib/auth.js';
+import { CLIENT_DIST, HOST, IS_PRODUCTION, PORT, UPLOADS_DIR } from './env.js';
 import { migrate, query, close } from './db.js';
 import { errorHandler } from './lib/errors.js';
 import plantsRouter from './routes/plants.js';
 import eventsRouter from './routes/events.js';
 import settingsRouter from './routes/settings.js';
 import weatherRouter from './routes/weather.js';
+import photosRouter, { photoRouter } from './routes/photos.js';
+import recommendationsRouter from './routes/recommendations.js';
 
 const app = express();
 
-app.use(morgan('dev'));
-app.use(express.json());
+if (IS_PRODUCTION) {
+  app.set('trust proxy', 1);
+}
 
-fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-app.use('/uploads', express.static(UPLOADS_DIR, { index: false, fallthrough: false }));
+app.use(morgan(IS_PRODUCTION ? 'combined' : 'dev'));
+app.use(express.json());
 
 app.get('/api/health', async (_req, res) => {
   try {
@@ -26,19 +31,33 @@ app.get('/api/health', async (_req, res) => {
   }
 });
 
+app.use(clerkMiddleware(clerkOptions()));
+
+fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+app.use('/uploads', express.static(UPLOADS_DIR, { index: false, fallthrough: false }));
+
+app.use('/api', requireAuth());
 app.use('/api/plants', plantsRouter);
+app.use('/api/plants/:plantId/photos', photosRouter);
+app.use('/api/photos', photoRouter);
 app.use('/api/events', eventsRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/weather', weatherRouter);
+app.use('/api/recommendations', recommendationsRouter);
 
 app.use('/api', (_req, res) => {
   res.status(404).json({ error: 'Not found' });
 });
 
+if (IS_PRODUCTION && fs.existsSync(CLIENT_DIST)) {
+  app.use(express.static(CLIENT_DIST));
+  app.get(/^(?!\/api|\/uploads).*/, (_req, res) => {
+    res.sendFile(path.join(CLIENT_DIST, 'index.html'));
+  });
+}
+
 app.use(errorHandler);
 
-// The API still listens when Postgres is down so /api/health can say so, and it keeps
-// retrying so starting the database does not require restarting the server.
 migrateWithRetry();
 
 async function migrateWithRetry() {
