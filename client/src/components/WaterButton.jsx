@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../api.js';
 
-export default function WaterButton({ plant, onWatered }) {
+export default function WaterButton({ plant, onWatered, editTo = '#log-event' }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
@@ -53,9 +54,15 @@ export default function WaterButton({ plant, onWatered }) {
           Yesterday’s rain (~{plant.rain_credit_ml} ml credit) covers the usual {usual} ml.
         </p>
       )}
-      <a href="#log-event" className="muted water-edit-link">
-        edit amount or date
-      </a>
+      {editTo.startsWith('#') ? (
+        <a href={editTo} className="muted water-edit-link">
+          edit amount or date
+        </a>
+      ) : (
+        <Link to={editTo} className="muted water-edit-link">
+          edit amount or date
+        </Link>
+      )}
       {notice && <p className="ok">{notice}</p>}
       {error && <p className="bad">{error}</p>}
     </div>

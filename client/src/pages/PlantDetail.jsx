@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import CareLog from '../components/CareLog.jsx';
 import PhotoUploader from '../components/PhotoUploader.jsx';
@@ -24,6 +24,7 @@ function SpecItem({ label, value, wide = false }) {
 
 export default function PlantDetail() {
   const { id } = useParams();
+  const location = useLocation();
   const [plant, setPlant] = useState(null);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -43,6 +44,15 @@ export default function PlantDetail() {
       cancelled = true;
     };
   }, [reloadPlant]);
+
+  useEffect(() => {
+    if (!plant || !location.hash) return undefined;
+    const targetId = location.hash.slice(1);
+    const timer = window.setTimeout(() => {
+      document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+    return () => window.clearTimeout(timer);
+  }, [plant, location.hash]);
 
   async function archive() {
     if (!window.confirm(`Archive ${plant.name}? History is kept.`)) return;

@@ -8,7 +8,7 @@ import { getGardenYesterdayPrecipMm } from './gardenWeather.js';
 const WATER_STATUS_SQL = `
   CASE
     WHEN ps.archived_at IS NOT NULL THEN NULL
-    WHEN ps.next_water_due IS NULL THEN 'ok'
+    WHEN ps.next_water_due IS NULL THEN 'overdue'
     WHEN ps.next_water_due < (now() AT TIME ZONE s.timezone)::date THEN 'overdue'
     WHEN ps.next_water_due = (now() AT TIME ZONE s.timezone)::date THEN 'due_today'
     ELSE 'ok'

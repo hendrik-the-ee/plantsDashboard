@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api.js';
+import { formatEventTime } from '../lib/careEvents.js';
 
 export default function DiagnosisPanel({ photoId }) {
   const [analysis, setAnalysis] = useState(null);
@@ -66,11 +67,23 @@ export default function DiagnosisPanel({ photoId }) {
       )}
 
       {analysis?.status === 'failed' && (
-        <p className="bad">{analysis.error || 'Analysis failed'}</p>
+        <>
+          {analysis.completed_at && (
+            <p className="muted diagnosis-date">
+              Analysis attempted {formatEventTime(analysis.completed_at)}
+            </p>
+          )}
+          <p className="bad">{analysis.error || 'Analysis failed'}</p>
+        </>
       )}
 
       {analysis?.status === 'done' && (
         <>
+          {analysis.completed_at && (
+            <p className="muted diagnosis-date">
+              Photo analysis {formatEventTime(analysis.completed_at)}
+            </p>
+          )}
           {analysis.prompt_summary && (
             <p className="muted diagnosis-prompt">{analysis.prompt_summary}</p>
           )}
