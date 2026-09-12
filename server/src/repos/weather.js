@@ -1,11 +1,11 @@
 import { query } from '../db.js';
+import { COORD_DECIMALS } from '../lib/coords.js';
 
 export const CACHE_TTL_MS = 3 * 60 * 60 * 1000;
-export const CACHE_DECIMALS = 2;
 
 // v3: yesterday precip from Archive API (forecast past_days hindcast is unreliable).
 export function locationKey(latitude, longitude) {
-  return `v3:${Number(latitude).toFixed(CACHE_DECIMALS)},${Number(longitude).toFixed(CACHE_DECIMALS)}`;
+  return `v3:${Number(latitude).toFixed(COORD_DECIMALS)},${Number(longitude).toFixed(COORD_DECIMALS)}`;
 }
 
 export async function getCache(key) {

@@ -47,7 +47,7 @@ async function main() {
   await query(
     `
       INSERT INTO settings (owner_id, timezone, units, latitude, longitude)
-      VALUES ($1, 'America/New_York', 'metric', 40.7128, -74.0060)
+      VALUES ($1, 'America/New_York', 'metric', 40.71, -74.01)
       ON CONFLICT (owner_id) DO UPDATE
       SET latitude = EXCLUDED.latitude, longitude = EXCLUDED.longitude, updated_at = now()
     `,

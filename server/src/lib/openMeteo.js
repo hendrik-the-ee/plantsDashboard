@@ -1,4 +1,5 @@
 import { HttpError } from './errors.js';
+import { formatCoord } from './coords.js';
 
 const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
 const ARCHIVE_URL = 'https://archive-api.open-meteo.com/v1/archive';
@@ -29,8 +30,8 @@ export function calendarDateInTimezone(timezone, dayOffset = 0) {
 
 export async function fetchForecast(latitude, longitude, { units = 'metric', timezone = 'UTC' } = {}) {
   const params = new URLSearchParams({
-    latitude: String(latitude),
-    longitude: String(longitude),
+    latitude: formatCoord(latitude),
+    longitude: formatCoord(longitude),
     daily: DAILY_FIELDS,
     forecast_days: '3',
     timezone,
@@ -65,8 +66,8 @@ export async function fetchForecast(latitude, longitude, { units = 'metric', tim
 async function fetchYesterdayPrecip(latitude, longitude, { units, timezone }) {
   const date = calendarDateInTimezone(timezone, -1);
   const params = new URLSearchParams({
-    latitude: String(latitude),
-    longitude: String(longitude),
+    latitude: formatCoord(latitude),
+    longitude: formatCoord(longitude),
     start_date: date,
     end_date: date,
     daily: 'precipitation_sum',

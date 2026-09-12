@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { query, tx } from '../db.js';
 import { UPLOADS_DIR } from '../env.js';
+import { roundCoord } from '../lib/coords.js';
 import { analyzePhoto, buildPromptSummary } from '../lib/vision.js';
 import { getPlant } from './plants.js';
 import { listEvents } from './events.js';
@@ -10,8 +11,8 @@ import * as settings from './settings.js';
 function gardenLocationFromSettings(row) {
   if (!row || row.latitude == null || row.longitude == null) return null;
   return {
-    latitude: Number(row.latitude),
-    longitude: Number(row.longitude),
+    latitude: roundCoord(row.latitude),
+    longitude: roundCoord(row.longitude),
   };
 }
 

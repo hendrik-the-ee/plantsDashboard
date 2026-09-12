@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import WaterButton from './WaterButton.jsx';
 
 const severityClass = {
@@ -13,9 +14,19 @@ export default function RecommendationList({
   onDismiss,
   plantsById = {},
   onWatered,
+  gardenReady = true,
+  plantsLoading = false,
 }) {
-  if (loading) return <p className="muted">Loading recommendations…</p>;
+  if (loading || plantsLoading) return <p className="muted">Loading recommendations…</p>;
   if (error) return <p className="bad">{error.message}</p>;
+  if (!gardenReady) {
+    return (
+      <p className="muted">
+        No garden set up yet — open <Link to="/settings">Settings</Link> to set your location, then{' '}
+        <Link to="/plants/new">add plants</Link> to create your garden.
+      </p>
+    );
+  }
   if (!items.length) {
     return <p className="muted">Nothing urgent right now — your garden looks on track.</p>;
   }

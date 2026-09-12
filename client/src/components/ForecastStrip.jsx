@@ -1,3 +1,5 @@
+import { formatCoord } from '../lib/coords.js';
+
 function weatherLabel(code) {
   if (code === 0) return 'Clear';
   if (code <= 3) return 'Cloudy';
@@ -53,8 +55,8 @@ export default function ForecastStrip({ weather }) {
         <div>
           <h2>3-day forecast</h2>
           <p className="muted">
-            Garden location {weather.location.latitude.toFixed(4)},{' '}
-            {weather.location.longitude.toFixed(4)}
+            Garden location {formatCoord(weather.location.latitude)},{' '}
+            {formatCoord(weather.location.longitude)}
             {stale ? ' · showing cached forecast' : ''}
           </p>
           {yesterdayRain && <p className="forecast-yesterday">{yesterdayRain}</p>}
