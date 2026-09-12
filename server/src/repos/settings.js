@@ -1,8 +1,9 @@
 import { query } from '../db.js';
+import { normalizeCoordFields, roundCoord } from '../lib/coords.js';
 
 export async function getSettings(ownerId) {
   const { rows } = await query('SELECT * FROM settings WHERE owner_id = $1', [ownerId]);
-  if (rows[0]) return rows[0];
+  if (rows[0]) return normalizeCoordFields(rows[0]);
 
   const { rows: created } = await query(
     `
@@ -13,10 +14,10 @@ export async function getSettings(ownerId) {
     `,
     [ownerId],
   );
-  if (created[0]) return created[0];
+  if (created[0]) return normalizeCoordFields(created[0]);
 
   const { rows: retry } = await query('SELECT * FROM settings WHERE owner_id = $1', [ownerId]);
-  return retry[0] ?? null;
+  return normalizeCoordFields(retry[0] ?? null);
 }
 
 export async function updateSettings(ownerId, fields) {
@@ -26,7 +27,12 @@ export async function updateSettings(ownerId, fields) {
   );
   if (keys.length === 0) return getSettings(ownerId);
   const assignments = keys.map((key, i) => `${key} = $${i + 1}`);
-  const values = keys.map((key) => fields[key]);
+  const values = keys.map((key) => {
+    if (key === 'latitude' || key === 'longitude') {
+      return fields[key] == null ? null : roundCoord(fields[key]);
+    }
+    return fields[key];
+  });
   const { rows } = await query(
     `
       UPDATE settings
@@ -36,5 +42,5 @@ export async function updateSettings(ownerId, fields) {
     `,
     [...values, ownerId],
   );
-  return rows[0] ?? null;
+  return normalizeCoordFields(rows[0] ?? null);
 }

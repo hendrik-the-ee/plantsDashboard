@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import { GoogleGenAI } from '@google/genai';
 import { z } from 'zod';
+import { formatCoord } from './coords.js';
 import { GEMINI_API_KEY, VISION_MODEL } from '../env.js';
 
 const findingSchema = z.object({
@@ -44,7 +45,7 @@ function formatGardenLocation(gardenLocation) {
   if (gardenLocation?.latitude == null || gardenLocation?.longitude == null) {
     return null;
   }
-  return `${Number(gardenLocation.latitude).toFixed(5)}, ${Number(gardenLocation.longitude).toFixed(5)}`;
+  return `${formatCoord(gardenLocation.latitude)}, ${formatCoord(gardenLocation.longitude)}`;
 }
 
 function buildPrompt(plantContext) {

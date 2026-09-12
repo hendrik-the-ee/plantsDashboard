@@ -40,31 +40,30 @@ export default function WaterButton({ plant, onWatered, editTo = '#log-event' })
 
   return (
     <div className="water-button-wrap">
+      {adjusted && !rainCovered && usual != null && plant.rain_credit_ml != null && (
+        <span className="water-rain-note">
+          💧 {plant.rain_credit_ml} ml rain credit
+        </span>
+      )}
+      {rainCovered && (
+        <span className="water-rain-note">
+          💧 Yesterday’s rain (~{plant.rain_credit_ml} ml credit) covers the usual {usual} ml.
+        </span>
+      )}
       <button type="button" onClick={handleWater} disabled={busy || plant.archived_at}>
         {busy ? 'Logging…' : label}
       </button>
-      {adjusted && !rainCovered && usual != null && (
-        <p className="muted water-rain-note">
-          Reduced from {usual} ml for {Number(plant.rain_precip_mm).toFixed(1)} mm rain
-          {plant.rain_credit_ml != null ? ` (−${plant.rain_credit_ml} ml credit)` : ''}
-        </p>
-      )}
-      {rainCovered && (
-        <p className="muted water-rain-note">
-          Yesterday’s rain (~{plant.rain_credit_ml} ml credit) covers the usual {usual} ml.
-        </p>
-      )}
       {editTo.startsWith('#') ? (
-        <a href={editTo} className="muted water-edit-link">
+        <a href={editTo} className="water-edit-link">
           edit amount or date
         </a>
       ) : (
-        <Link to={editTo} className="muted water-edit-link">
+        <Link to={editTo} className="water-edit-link">
           edit amount or date
         </Link>
       )}
-      {notice && <p className="ok">{notice}</p>}
-      {error && <p className="bad">{error}</p>}
+      {notice && <span className="ok">{notice}</span>}
+      {error && <span className="bad">{error}</span>}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api.js';
+import { formatCoord, roundCoord } from '../lib/coords.js';
 import { timezoneLabel, timezoneOptions } from '../lib/timezones.js';
 
 export default function Settings() {
@@ -22,8 +23,8 @@ export default function Settings() {
         setSettings(row);
         setTimezone(row.timezone);
         setUnits(row.units);
-        setLatitude(row.latitude ?? '');
-        setLongitude(row.longitude ?? '');
+        setLatitude(formatCoord(row.latitude));
+        setLongitude(formatCoord(row.longitude));
       })
       .catch((err) => {
         if (!cancelled) setError(err);
@@ -42,13 +43,13 @@ export default function Settings() {
       const payload = {
         timezone,
         units,
-        latitude: latitude === '' ? null : Number(latitude),
-        longitude: longitude === '' ? null : Number(longitude),
+        latitude: latitude === '' ? null : roundCoord(latitude),
+        longitude: longitude === '' ? null : roundCoord(longitude),
       };
       const row = await api.updateSettings(payload);
       setSettings(row);
-      setLatitude(row.latitude ?? '');
-      setLongitude(row.longitude ?? '');
+      setLatitude(formatCoord(row.latitude));
+      setLongitude(formatCoord(row.longitude));
       setSaved(true);
     } catch (err) {
       setError(err);
@@ -66,8 +67,8 @@ export default function Settings() {
     setError(null);
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setLatitude(Number(position.coords.latitude.toFixed(5)));
-        setLongitude(Number(position.coords.longitude.toFixed(5)));
+        setLatitude(formatCoord(position.coords.latitude));
+        setLongitude(formatCoord(position.coords.longitude));
         setLocating(false);
       },
       (err) => {
@@ -122,7 +123,7 @@ export default function Settings() {
                 max="90"
                 value={latitude}
                 onChange={(e) => setLatitude(e.target.value)}
-                placeholder="e.g. 40.7128"
+                placeholder="e.g. 40.71"
               />
             </label>
             <label>
@@ -134,7 +135,7 @@ export default function Settings() {
                 max="180"
                 value={longitude}
                 onChange={(e) => setLongitude(e.target.value)}
-                placeholder="e.g. -74.0060"
+                placeholder="e.g. -74.01"
               />
             </label>
           </div>

@@ -1,4 +1,5 @@
 import { z, flattenError } from 'zod';
+import { roundCoord } from './coords.js';
 import { HttpError } from './errors.js';
 
 export const SOIL_TYPES = [
@@ -43,11 +44,11 @@ const optionalPositiveNumber = z.preprocess(
 );
 const optionalLatitude = z.preprocess(
   blankToNull,
-  z.union([z.null(), z.coerce.number().gte(-90).lte(90)]).optional(),
+  z.union([z.null(), z.coerce.number().gte(-90).lte(90).transform(roundCoord)]).optional(),
 );
 const optionalLongitude = z.preprocess(
   blankToNull,
-  z.union([z.null(), z.coerce.number().gte(-180).lte(180)]).optional(),
+  z.union([z.null(), z.coerce.number().gte(-180).lte(180).transform(roundCoord)]).optional(),
 );
 
 function coordinatesPair(value, ctx) {

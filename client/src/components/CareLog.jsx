@@ -183,7 +183,7 @@ export default function CareLog({
               </label>
               {waterRainAdjusted && usualWaterMl != null && suggestedWaterMl != null && (
                 <p className="muted">
-                  Suggested {suggestedWaterMl} ml after rain credit (usual {usualWaterMl} ml).
+                  {usualWaterMl - suggestedWaterMl} ml rain credit
                 </p>
               )}
             </>

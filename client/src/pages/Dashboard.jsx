@@ -42,18 +42,6 @@ export default function Dashboard() {
         </Link>
       </header>
 
-      <section className="card">
-        <h2>What needs doing</h2>
-        <RecommendationList
-          items={recommendations}
-          loading={recsLoading}
-          error={recsError}
-          onDismiss={dismiss}
-          plantsById={plantsById}
-          onWatered={handleWatered}
-        />
-      </section>
-
       {weatherLoading && <p className="muted">Loading forecast…</p>}
       {locationMissing && (
         <p className="card forecast-missing">
@@ -63,6 +51,20 @@ export default function Dashboard() {
       )}
       {weatherError && <p className="bad">{weatherError.message}</p>}
       {weather && <ForecastStrip weather={weather} />}
+
+      <section className="card">
+        <h2>What needs doing</h2>
+        <RecommendationList
+          items={recommendations}
+          loading={recsLoading}
+          error={recsError}
+          onDismiss={dismiss}
+          plantsById={plantsById}
+          onWatered={handleWatered}
+          plantsLoading={loading || weatherLoading}
+          gardenReady={plants.length > 0 && !locationMissing}
+        />
+      </section>
 
       <label className="checkbox">
         <input
