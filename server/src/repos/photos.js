@@ -121,7 +121,7 @@ export async function createAnalysis(photoId) {
   return rows[0];
 }
 
-export async function runAnalysis(analysisId, photo, plant) {
+export async function runAnalysis(analysisId, photo, plant, question) {
   await query(
     `UPDATE photo_analyses SET status = 'running' WHERE id = $1`,
     [analysisId],
@@ -130,8 +130,7 @@ export async function runAnalysis(analysisId, photo, plant) {
   try {
     const absPath = path.join(UPLOADS_DIR, photo.file_path);
     const plantContext = await buildPlantContext(plant);
-    const promptSummary = buildPromptSummary(plantContext);
-    const { validated, raw } = await analyzePhoto(absPath, plantContext);
+    const { validated, raw, promptSummary } = await analyzePhoto(absPath, plantContext, question);
 
     await tx(async (client) => {
       await client.query(
@@ -180,7 +179,7 @@ export async function runAnalysis(analysisId, photo, plant) {
       recentEvents: [],
       gardenLocation: null,
     }));
-    const promptSummary = buildPromptSummary(plantContext);
+    const promptSummary = buildPromptSummary(plantContext, question);
     await query(
       `
         UPDATE photo_analyses

@@ -99,8 +99,12 @@ export const api = {
   deletePhoto(photoId) {
     return request(`/api/photos/${photoId}`, { method: 'DELETE' });
   },
-  analyzePhoto(photoId) {
-    return request(`/api/photos/${photoId}/analyze`, { method: 'POST' });
+  analyzePhoto(photoId, question) {
+    const body = question ? { question } : {};
+    return request(`/api/photos/${photoId}/analyze`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
   },
   getPhotoAnalysis(photoId) {
     return request(`/api/photos/${photoId}/analysis`);

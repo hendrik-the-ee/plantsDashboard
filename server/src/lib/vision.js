@@ -48,7 +48,7 @@ function formatGardenLocation(gardenLocation) {
   return `${formatCoord(gardenLocation.latitude)}, ${formatCoord(gardenLocation.longitude)}`;
 }
 
-function buildPrompt(plantContext) {
+function buildPrompt(plantContext, question) {
   const lines = [
     'Analyze this plant photo for a home gardener.',
     'Return JSON matching the schema with health_score (0-100), growth_stage, estimated_harvest_on (ISO date or null), and findings.',
@@ -68,11 +68,18 @@ function buildPrompt(plantContext) {
       lines.push(`  - ${event.type} at ${event.occurred_at}`);
     }
   }
+  if (question) {
+    lines.push(
+      '',
+      'Gardener question (address this in findings/recommendations while still filling the schema):',
+      question,
+    );
+  }
   return lines.join('\n');
 }
 
 /** Short record of what was sent with the photo (stored with the analysis). */
-export function buildPromptSummary(plantContext) {
+export function buildPromptSummary(plantContext, question) {
   const gardenCoords = formatGardenLocation(plantContext.gardenLocation);
   const details = [
     plantContext.name,
@@ -97,15 +104,18 @@ export function buildPromptSummary(plantContext) {
       .join(', ');
     summary += ` Recent care: ${care}.`;
   }
+  if (question) {
+    summary += ` Asked: ${question}`;
+  }
   return summary;
 }
 
-export async function analyzePhoto(absPath, plantContext) {
+export async function analyzePhoto(absPath, plantContext, question) {
   if (!GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY is not configured');
   }
 
-  const promptSummary = buildPromptSummary(plantContext);
+  const promptSummary = buildPromptSummary(plantContext, question);
   const bytes = await fs.readFile(absPath);
   const mimeType = absPath.endsWith('.png')
     ? 'image/png'
@@ -120,7 +130,7 @@ export async function analyzePhoto(absPath, plantContext) {
       {
         role: 'user',
         parts: [
-          { text: buildPrompt(plantContext) },
+          { text: buildPrompt(plantContext, question) },
           { inlineData: { mimeType, data: bytes.toString('base64') } },
         ],
       },
