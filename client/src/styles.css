@@ -633,6 +633,34 @@ button.danger {
   border-top: 1px solid var(--border);
 }
 
+.diagnosis-ask {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+
+.diagnosis-ask label {
+  display: grid;
+  gap: 0.25rem;
+  font-weight: 600;
+}
+
+.diagnosis-ask textarea {
+  font: inherit;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  resize: vertical;
+}
+
+.diagnosis-ask-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
 .diagnosis-summary p {
   margin: 0.25rem 0;
 }

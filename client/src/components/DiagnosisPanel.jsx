@@ -2,11 +2,15 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api.js';
 import { formatEventTime } from '../lib/careEvents.js';
 
+const ASK_MAX = 500;
+
 export default function DiagnosisPanel({ photoId }) {
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [askOpen, setAskOpen] = useState(false);
+  const [question, setQuestion] = useState('');
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -25,6 +29,11 @@ export default function DiagnosisPanel({ photoId }) {
   }, [reload]);
 
   useEffect(() => {
+    setAskOpen(false);
+    setQuestion('');
+  }, [photoId]);
+
+  useEffect(() => {
     if (!analysis || analysis.status === 'done' || analysis.status === 'failed' || analysis.status === 'none') {
       return undefined;
     }
@@ -32,11 +41,13 @@ export default function DiagnosisPanel({ photoId }) {
     return () => clearInterval(timer);
   }, [analysis, reload]);
 
-  async function analyze() {
+  async function runAnalyze(customQuestion) {
     setBusy(true);
     setError(null);
     try {
-      await api.analyzePhoto(photoId);
+      await api.analyzePhoto(photoId, customQuestion);
+      setAskOpen(false);
+      setQuestion('');
       await reload();
     } catch (err) {
       setError(err);
@@ -45,21 +56,69 @@ export default function DiagnosisPanel({ photoId }) {
     }
   }
 
+  function handleAnalyze() {
+    return runAnalyze();
+  }
+
+  function handleAskSubmit(event) {
+    event.preventDefault();
+    const trimmed = question.trim();
+    if (!trimmed) {
+      setError(new Error('Enter a question to ask about this photo.'));
+      return;
+    }
+    return runAnalyze(trimmed);
+  }
+
   if (loading && !analysis) return <p className="muted">Loading analysis…</p>;
 
   return (
     <div className="diagnosis-panel">
       <div className="care-log-header">
         <h3>Diagnosis</h3>
-        <button type="button" className="button" onClick={analyze} disabled={busy}>
-          {busy ? 'Starting…' : analysis?.status === 'done' ? 'Re-analyze' : 'Analyze'}
-        </button>
+        <div className="button-row">
+          <button type="button" className="button" onClick={handleAnalyze} disabled={busy}>
+            {busy && !askOpen ? 'Starting…' : analysis?.status === 'done' ? 'Re-analyze' : 'Analyze'}
+          </button>
+          <button
+            type="button"
+            className="button secondary"
+            onClick={() => setAskOpen((open) => !open)}
+            disabled={busy}
+          >
+            Ask
+          </button>
+        </div>
       </div>
+
+      {askOpen && (
+        <form className="diagnosis-ask" onSubmit={handleAskSubmit}>
+          <label>
+            Your question
+            <textarea
+              rows="3"
+              maxLength={ASK_MAX}
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              placeholder="e.g. Is this overwatering or pests?"
+              disabled={busy}
+            />
+          </label>
+          <div className="diagnosis-ask-footer">
+            <span className="muted">
+              {question.length}/{ASK_MAX}
+            </span>
+            <button type="submit" className="button" disabled={busy || !question.trim()}>
+              {busy ? 'Starting…' : 'Run'}
+            </button>
+          </div>
+        </form>
+      )}
 
       {error && <p className="bad">{error.message}</p>}
 
-      {analysis?.status === 'none' && (
-        <p className="muted">Click Analyze to get health findings from Gemini vision.</p>
+      {analysis?.status === 'none' && !askOpen && (
+        <p className="muted">Click Analyze for a health check, or Ask to pose a specific question.</p>
       )}
 
       {(analysis?.status === 'queued' || analysis?.status === 'running') && (

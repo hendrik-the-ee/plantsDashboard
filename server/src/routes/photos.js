@@ -4,7 +4,7 @@ import { asyncHandler } from '../lib/asyncHandler.js';
 import { notFound } from '../lib/errors.js';
 import { photoUpload } from '../lib/upload.js';
 import { loadOwnedPlant, requireUserId } from '../middleware/ownership.js';
-import { idParamSchema, validate } from '../lib/validate.js';
+import { idParamSchema, analyzePhotoSchema, validate } from '../lib/validate.js';
 import * as photos from '../repos/photos.js';
 import { getPlant } from '../repos/plants.js';
 
@@ -69,14 +69,16 @@ photoRouter.post(
   '/:id/analyze',
   analyzeLimiter,
   validate(idParamSchema, 'params'),
+  validate(analyzePhotoSchema),
   asyncHandler(async (req, res) => {
     const userId = requireUserId(req);
     const photo = await photos.getPhotoForOwner(req.validated.params.id, userId);
     if (!photo) throw notFound('Photo not found');
 
     const plant = await getPlant(photo.plant_id, userId);
+    const question = req.validated.body?.question;
     const analysis = await photos.createAnalysis(photo.id);
-    photos.runAnalysis(analysis.id, photo, plant).catch(console.error);
+    photos.runAnalysis(analysis.id, photo, plant, question).catch(console.error);
     res.status(202).json({ analysisId: analysis.id, status: analysis.status });
   }),
 );

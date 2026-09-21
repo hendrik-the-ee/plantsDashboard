@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api.js';
+import { preparePhotoForUpload } from '../lib/preparePhoto.js';
 import DiagnosisPanel from './DiagnosisPanel.jsx';
 
 export default function PhotoUploader({ plantId, onChange }) {
@@ -7,6 +8,7 @@ export default function PhotoUploader({ plantId, onChange }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [busyLabel, setBusyLabel] = useState('Uploading…');
   const [selectedId, setSelectedId] = useState(null);
 
   const reload = useCallback(async () => {
@@ -31,9 +33,12 @@ export default function PhotoUploader({ plantId, onChange }) {
     const file = event.target.files?.[0];
     if (!file) return;
     setBusy(true);
+    setBusyLabel('Preparing…');
     setError(null);
     try {
-      const row = await api.uploadPhoto(plantId, file);
+      const prepared = await preparePhotoForUpload(file);
+      setBusyLabel('Uploading…');
+      const row = await api.uploadPhoto(plantId, prepared);
       setSelectedId(row.id);
       await reload();
       onChange?.();
@@ -41,6 +46,7 @@ export default function PhotoUploader({ plantId, onChange }) {
       setError(err);
     } finally {
       setBusy(false);
+      setBusyLabel('Uploading…');
       event.target.value = '';
     }
   }
@@ -48,6 +54,7 @@ export default function PhotoUploader({ plantId, onChange }) {
   async function handleDelete(photoId) {
     if (!window.confirm('Delete this photo?')) return;
     setBusy(true);
+    setBusyLabel('Uploading…');
     setError(null);
     try {
       await api.deletePhoto(photoId);
@@ -67,7 +74,7 @@ export default function PhotoUploader({ plantId, onChange }) {
       <div className="care-log-header">
         <h2>Photos</h2>
         <label className="button">
-          {busy ? 'Uploading…' : 'Upload photo'}
+          {busy ? busyLabel : 'Upload photo'}
           <input type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={handleUpload} disabled={busy} />
         </label>
       </div>

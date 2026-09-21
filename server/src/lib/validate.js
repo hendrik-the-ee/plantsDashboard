@@ -213,6 +213,15 @@ export const waterSchema = z.object({
   occurred_at: optionalOccurredAt,
 });
 
+export const analyzePhotoSchema = z
+  .object({
+    question: z.preprocess(
+      blankToUndefined,
+      z.union([z.undefined(), z.string().trim().min(1).max(500)]).optional(),
+    ),
+  })
+  .strict();
+
 export const eventPatchSchema = z
   .object({
     occurred_at: optionalOccurredAt,
