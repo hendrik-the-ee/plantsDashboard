@@ -2,10 +2,10 @@ import fs from 'node:fs/promises';
 import { GoogleGenAI } from '@google/genai';
 import { z } from 'zod';
 import { formatCoord } from './coords.js';
-import { GEMINI_API_KEY, VISION_MODEL } from '../env.js';
+import { GEMINI_API_KEY } from '../env.js';
 
-/** Used once when the primary model returns HTTP 503. Public model id, not a secret. */
-const VISION_MODEL_FALLBACK = 'gemini-2.5-flash';
+/** Tried in order. A 503 moves to the next model. Public model ids, not secrets. */
+const VISION_MODELS = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite'];
 
 const findingSchema = z.object({
   issue: z.string(),
@@ -165,23 +165,19 @@ export async function analyzePhoto(absPath, plantContext, question) {
 
   const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
   const prompt = buildPrompt(plantContext, question);
-  const models =
-    VISION_MODEL === VISION_MODEL_FALLBACK
-      ? [VISION_MODEL]
-      : [VISION_MODEL, VISION_MODEL_FALLBACK];
 
   let lastError;
-  for (let i = 0; i < models.length; i += 1) {
-    const model = models[i];
+  for (let i = 0; i < VISION_MODELS.length; i += 1) {
+    const model = VISION_MODELS[i];
     try {
       const { validated, raw } = await requestAnalysis(ai, model, prompt, mimeType, bytes);
       return { validated, raw, promptSummary, model };
     } catch (err) {
       lastError = err;
-      const hasFallback = i < models.length - 1;
+      const hasFallback = i < VISION_MODELS.length - 1;
       if (!hasFallback || !isModelUnavailable(err)) throw err;
       console.warn(
-        `Vision model ${model} returned 503; retrying with ${models[i + 1]}`,
+        `Vision model ${model} returned 503; retrying with ${VISION_MODELS[i + 1]}`,
       );
     }
   }
