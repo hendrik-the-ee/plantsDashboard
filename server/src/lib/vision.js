@@ -4,6 +4,9 @@ import { z } from 'zod';
 import { formatCoord } from './coords.js';
 import { GEMINI_API_KEY, VISION_MODEL } from '../env.js';
 
+/** Used once when the primary model returns HTTP 503. Public model id, not a secret. */
+const VISION_MODEL_FALLBACK = 'gemini-2.5-flash';
+
 const findingSchema = z.object({
   issue: z.string(),
   severity: z.enum(['info', 'low', 'medium', 'high']),
@@ -110,27 +113,20 @@ export function buildPromptSummary(plantContext, question) {
   return summary;
 }
 
-export async function analyzePhoto(absPath, plantContext, question) {
-  if (!GEMINI_API_KEY) {
-    throw new Error('GEMINI_API_KEY is not configured');
-  }
+function isModelUnavailable(err) {
+  if (err?.status === 503) return true;
+  const message = String(err?.message ?? '');
+  return message.includes('"code":503') || message.includes('"status":"UNAVAILABLE"');
+}
 
-  const promptSummary = buildPromptSummary(plantContext, question);
-  const bytes = await fs.readFile(absPath);
-  const mimeType = absPath.endsWith('.png')
-    ? 'image/png'
-    : absPath.endsWith('.webp')
-      ? 'image/webp'
-      : 'image/jpeg';
-
-  const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+async function requestAnalysis(ai, model, prompt, mimeType, bytes) {
   const response = await ai.models.generateContent({
-    model: VISION_MODEL,
+    model,
     contents: [
       {
         role: 'user',
         parts: [
-          { text: buildPrompt(plantContext, question) },
+          { text: prompt },
           { inlineData: { mimeType, data: bytes.toString('base64') } },
         ],
       },
@@ -151,6 +147,44 @@ export async function analyzePhoto(absPath, plantContext, question) {
     throw new Error('Vision model returned invalid JSON');
   }
 
-  const validated = analysisSchema.parse(parsed);
-  return { validated, raw: parsed, promptSummary };
+  return { validated: analysisSchema.parse(parsed), raw: parsed };
+}
+
+export async function analyzePhoto(absPath, plantContext, question) {
+  if (!GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY is not configured');
+  }
+
+  const promptSummary = buildPromptSummary(plantContext, question);
+  const bytes = await fs.readFile(absPath);
+  const mimeType = absPath.endsWith('.png')
+    ? 'image/png'
+    : absPath.endsWith('.webp')
+      ? 'image/webp'
+      : 'image/jpeg';
+
+  const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+  const prompt = buildPrompt(plantContext, question);
+  const models =
+    VISION_MODEL === VISION_MODEL_FALLBACK
+      ? [VISION_MODEL]
+      : [VISION_MODEL, VISION_MODEL_FALLBACK];
+
+  let lastError;
+  for (let i = 0; i < models.length; i += 1) {
+    const model = models[i];
+    try {
+      const { validated, raw } = await requestAnalysis(ai, model, prompt, mimeType, bytes);
+      return { validated, raw, promptSummary, model };
+    } catch (err) {
+      lastError = err;
+      const hasFallback = i < models.length - 1;
+      if (!hasFallback || !isModelUnavailable(err)) throw err;
+      console.warn(
+        `Vision model ${model} returned 503; retrying with ${models[i + 1]}`,
+      );
+    }
+  }
+
+  throw lastError;
 }

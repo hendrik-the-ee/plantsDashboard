@@ -130,7 +130,11 @@ export async function runAnalysis(analysisId, photo, plant, question) {
   try {
     const absPath = path.join(UPLOADS_DIR, photo.file_path);
     const plantContext = await buildPlantContext(plant);
-    const { validated, raw, promptSummary } = await analyzePhoto(absPath, plantContext, question);
+    const { validated, raw, promptSummary, model } = await analyzePhoto(
+      absPath,
+      plantContext,
+      question,
+    );
 
     await tx(async (client) => {
       await client.query(
@@ -148,7 +152,7 @@ export async function runAnalysis(analysisId, photo, plant, question) {
         `,
         [
           analysisId,
-          process.env.VISION_MODEL || 'gemini-3.6-flash',
+          model,
           validated.health_score ?? null,
           validated.growth_stage ?? null,
           validated.estimated_harvest_on ?? null,
