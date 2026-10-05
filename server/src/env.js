@@ -21,5 +21,4 @@ export const CLERK_PUBLISHABLE_KEY =
 export const CLERK_SECRET_KEY = process.env.CLERK_SECRET_KEY || '';
 
 export const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
-export const VISION_MODEL = process.env.VISION_MODEL || 'gemini-3.6-flash';
 export const CLIENT_DIST = path.join(ROOT_DIR, 'client', 'dist');

@@ -51,8 +51,7 @@ SEED_OWNER_ID=user_xxxx npm run seed
    - **Persistent disk** (10 GB) mounted at `/data/uploads`
 3. Set environment variables:
    - `CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` (production Clerk app)
-   - `GEMINI_API_KEY` (for photo diagnosis)
-   - `VISION_MODEL=gemini-3.6-flash`
+   - `GEMINI_API_KEY` (for photo diagnosis). The model order is `gemini-3.8-flash`, then `gemini-3.5-flash`, then `gemini-3.5-flash-lite` on HTTP 503.
    - `NODE_ENV=production`
    - `UPLOADS_DIR=/data/uploads`
 4. In Clerk, allow your Render URL (`https://<app>.onrender.com`) as an authorized origin.
